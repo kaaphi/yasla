@@ -35,4 +35,8 @@ class ShoppingListState : ViewModel() {
     fun updateItem(idx: Int, newItem: ListItem) {
         list[idx] = newItem
     }
+
+    fun deleteCheckedItems() {
+        list.removeIf(ListItem::isChecked)
+    }
 }

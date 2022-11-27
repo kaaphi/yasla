@@ -11,11 +11,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -27,7 +26,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.kaaphi.yasla.model.ListItem
 import com.kaaphi.yasla.model.ShoppingListState
 import com.kaaphi.yasla.ui.theme.YaslaTheme
-import org.burnoutcrew.reorderable.*
+import org.burnoutcrew.reorderable.ReorderableItem
+import org.burnoutcrew.reorderable.detectReorder
+import org.burnoutcrew.reorderable.rememberReorderableLazyListState
+import org.burnoutcrew.reorderable.reorderable
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -43,8 +45,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun ListApp() {
     YaslaTheme {
-        ShoppingList()
-//        VerticalReorderList()
+        Column {
+            ShoppingList(modifier = Modifier.weight(1f))
+            BottomBar()
+        }
     }
 }
 
@@ -76,7 +80,8 @@ fun ListItemRow(item: ListItem, modifier: Modifier = Modifier, reorderModifier: 
 
 @Composable
 fun ShoppingList(
-    viewModel: ShoppingListState = viewModel()
+    modifier: Modifier = Modifier,
+    viewModel: ShoppingListState = viewModel(),
 ) {
     val state = rememberReorderableLazyListState(onMove = { from, to ->
         viewModel.dragItem(from.index, to.index)
@@ -86,7 +91,7 @@ fun ShoppingList(
 
     LazyColumn(
         state = state.listState,
-        modifier = Modifier
+        modifier = modifier
             .reorderable(state)
     ) {
         items(viewModel.list, { it }) { item ->
@@ -107,32 +112,23 @@ fun ShoppingList(
 }
 
 @Composable
-fun VerticalReorderList() {
-    val data = remember { mutableStateOf(List(100) { "Item $it" }) }
-    val state = rememberReorderableLazyListState(onMove = { from, to ->
-        data.value = data.value.toMutableList().apply {
-            add(to.index, removeAt(from.index))
-        }
-    })
-    LazyColumn(
-        state = state.listState,
-        modifier = Modifier
-            .reorderable(state)
-            .detectReorderAfterLongPress(state)
-    ) {
-        items(data.value, { it }) { item ->
-            ReorderableItem(state, key = item) { isDragging ->
-                val elevation = animateDpAsState(if (isDragging) 16.dp else 0.dp)
-                Column(
-                    modifier = Modifier
-                        .shadow(elevation.value)
-                        .background(MaterialTheme.colorScheme.surface)
-                ) {
-                    Text(item)
-                }
+fun BottomBar(
+    modifier: Modifier = Modifier,
+    viewModel: ShoppingListState = viewModel()
+) {
+    BottomAppBar(
+        actions = {
+            Button(onClick = { viewModel.deleteCheckedItems() }) {
+                Text("Clear Checked Items")
+            }
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { /*TODO*/ }) {
+                Icon(Icons.Default.Add, contentDescription = "Add")
             }
         }
-    }
+    )
+    
 }
 
 
