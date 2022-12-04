@@ -8,7 +8,6 @@ import kotlinx.parcelize.Parcelize
 
 @Parcelize
 data class ListItem(
-    val position: Int,
     val name: String,
     val isChecked: Boolean = false
 ) : Parcelable
@@ -22,21 +21,20 @@ class ShoppingListState : ViewModel() {
         list.addAll(DataSource().loadList())
     }
 
-    fun dragItem(fromIdx: Int, toIdx: Int) = list.apply {
+    fun moveItem(fromIdx: Int, toIdx: Int) = list.apply {
         add(toIdx, removeAt(fromIdx))
     }
 
-    fun endDragItem(startIdx: Int, endIdx: Int) {
-        for(idx in startIdx..endIdx) {
-            updateItem(idx, list[idx].copy(position = idx))
-        }
-    }
-
-    fun updateItem(idx: Int, newItem: ListItem) {
-        list[idx] = newItem
+    fun updateItem(item: ListItem, updateBlock: ListItem.() -> ListItem) {
+        //there must be a better way
+        list[list.indexOf(item)] = item.updateBlock()
     }
 
     fun deleteCheckedItems() {
         list.removeIf(ListItem::isChecked)
+    }
+
+    fun addItem(itemName: String) {
+        list.add(0, ListItem(itemName))
     }
 }

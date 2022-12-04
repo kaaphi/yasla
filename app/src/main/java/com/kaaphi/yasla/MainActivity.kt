@@ -15,6 +15,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -23,6 +25,10 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.kaaphi.yasla.model.ListItem
 import com.kaaphi.yasla.model.ShoppingListState
 import com.kaaphi.yasla.ui.theme.YaslaTheme
@@ -42,18 +48,53 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+enum class ShoppingListScreen() {
+    List,
+    AddItem
+}
+
 @Composable
-fun ListApp() {
-    YaslaTheme {
-        Column {
-            ShoppingList(modifier = Modifier.weight(1f))
-            BottomBar()
+fun ListApp(
+    viewModel: ShoppingListState = viewModel(),
+    navController: NavHostController = rememberNavController()
+) {
+    NavHost(
+        navController = navController,
+        startDestination = ShoppingListScreen.List.name
+    ) {
+        composable(route = ShoppingListScreen.List.name) {
+            Column {
+                ShoppingList(modifier = Modifier.weight(1f),
+                    list = viewModel.list,
+                    onMoveItem = viewModel::moveItem,
+                    onItemCheckChange = { isChecked ->
+                        viewModel.updateItem(this) {
+                            copy(isChecked = isChecked)
+                        }
+                    }
+                )
+                BottomBar(
+                    onClearCheckedItemsClicked = {
+                        viewModel.deleteCheckedItems()
+                    },
+                    onAddButtonClicked = {
+                        navController.navigate(ShoppingListScreen.AddItem.name)
+                    })
+            }
+        }
+
+        composable(route = ShoppingListScreen.AddItem.name) {
+            AddItem(onAddItemClicked = { itemName ->
+                viewModel.addItem(itemName)
+                navController.navigate(ShoppingListScreen.List.name)
+            })
         }
     }
 }
 
 @Composable
-fun ListItemRow(item: ListItem, modifier: Modifier = Modifier, reorderModifier: Modifier = Modifier, onCheckedChange: (Boolean) -> Unit) {
+fun ListItemRow(item: ListItem, modifier: Modifier = Modifier, reorderModifier: Modifier = Modifier,
+                onCheckedChange: (Boolean) -> Unit, ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -66,7 +107,7 @@ fun ListItemRow(item: ListItem, modifier: Modifier = Modifier, reorderModifier: 
         }
         Text(item.name, textDecoration = decoration)
         Spacer(modifier = Modifier.weight(1f))
-        FilledIconButton(onClick = { /*TODO*/ }) {
+        FilledIconButton(onClick = { /* TODO */}) {
             Icon(Icons.Default.Edit, contentDescription = "Edit")
         }
         FilledIconButton(onClick = {}, modifier = reorderModifier) {
@@ -81,12 +122,12 @@ fun ListItemRow(item: ListItem, modifier: Modifier = Modifier, reorderModifier: 
 @Composable
 fun ShoppingList(
     modifier: Modifier = Modifier,
-    viewModel: ShoppingListState = viewModel(),
+    list: List<ListItem>,
+    onMoveItem: (from: Int, to: Int) -> Unit,
+    onItemCheckChange: ListItem.(Boolean)->Unit
 ) {
     val state = rememberReorderableLazyListState(onMove = { from, to ->
-        viewModel.dragItem(from.index, to.index)
-    }, onDragEnd = { startIndex, endIndex ->
-        viewModel.endDragItem(startIndex, endIndex)
+        onMoveItem(from.index, to.index)
     })
 
     LazyColumn(
@@ -94,7 +135,7 @@ fun ShoppingList(
         modifier = modifier
             .reorderable(state)
     ) {
-        items(viewModel.list, { it }) { item ->
+        items(list, { it }) { item ->
             ReorderableItem(state, key = item) { isDragging ->
                 val elevation = animateDpAsState(if (isDragging) 16.dp else 0.dp)
                 ListItemRow(item = item,
@@ -103,9 +144,9 @@ fun ShoppingList(
                         .background(MaterialTheme.colorScheme.surface),
                     reorderModifier = Modifier
                         .detectReorder(state),
-                onCheckedChange = { isChecked ->
-                    viewModel.updateItem(item.position, item.copy(isChecked = isChecked))
-                })
+                    onCheckedChange = { isChecked ->
+                        item.onItemCheckChange(isChecked)
+                    })
             }
         }
     }
@@ -114,28 +155,50 @@ fun ShoppingList(
 @Composable
 fun BottomBar(
     modifier: Modifier = Modifier,
-    viewModel: ShoppingListState = viewModel()
+    onClearCheckedItemsClicked: () -> Unit,
+    onAddButtonClicked: () -> Unit,
 ) {
     BottomAppBar(
         actions = {
-            Button(onClick = { viewModel.deleteCheckedItems() }) {
+            Button(onClick = onClearCheckedItemsClicked) {
                 Text("Clear Checked Items")
             }
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { /*TODO*/ }) {
+            FloatingActionButton(onClick = onAddButtonClicked) {
                 Icon(Icons.Default.Add, contentDescription = "Add")
             }
         }
     )
-    
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddItem(
+    modifier: Modifier = Modifier,
+    onAddItemClicked: (String) -> Unit
+) {
+    val text = remember { mutableStateOf("") }
+
+    Row {
+        TextField(
+            value = text.value,
+            onValueChange = { text.value = it }
+        )
+        Button(onClick = {
+            onAddItemClicked(text.value)
+        }) {
+            Text("Add Item")
+        }
+    }
+}
+
 
 
 @Preview(showBackground = true)
 @Composable
 fun ListItemPreview() {
     YaslaTheme {
-
+        AddItem() {}
     }
 }
