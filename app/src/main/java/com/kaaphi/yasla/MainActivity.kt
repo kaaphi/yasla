@@ -21,6 +21,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -67,6 +69,7 @@ fun ListApp(
             val editItem: ListItem? by viewModel.editItemState.collectAsState()
             editItem?.let { item ->
                 EditQuantity(
+                    item = item,
                     onChangeQuantity = { quantity ->
                         viewModel.updateItem(item) {
                             copy(quantity = quantity)
@@ -224,10 +227,15 @@ fun AddItem(
 @Composable
 fun EditQuantity(
     modifier: Modifier = Modifier,
+    item: ListItem,
     onChangeQuantity: (String?) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val text = remember { mutableStateOf("") }
+    val initialValue = item.quantity ?: ""
+    val text = remember { mutableStateOf(TextFieldValue(
+        text = initialValue,
+        selection = TextRange(0, initialValue.length)
+    )) }
     val focusRequester = remember { FocusRequester() }
 
     AlertDialog(
@@ -239,7 +247,8 @@ fun EditQuantity(
             TextField(
                 value = text.value,
                 onValueChange = { text.value = it },
-                modifier = Modifier.focusRequester(focusRequester)
+                modifier = Modifier.focusRequester(focusRequester),
+
             )
             LaunchedEffect(focusRequester) {
                 delay(50) //for bug https://issuetracker.google.com/issues/204502668
@@ -248,7 +257,7 @@ fun EditQuantity(
         },
         confirmButton = {
             Button(onClick = {
-                onChangeQuantity.invoke(text.value.ifBlank { null })
+                onChangeQuantity.invoke(text.value.text.ifBlank { null })
             }) {
                 Text("OK")
             }
