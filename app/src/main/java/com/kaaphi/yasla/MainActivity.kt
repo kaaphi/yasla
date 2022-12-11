@@ -239,7 +239,7 @@ fun EditQuantity(
     val focusRequester = remember { FocusRequester() }
 
     AlertDialog(
-        onDismissRequest = { /* Nothing */ },
+        onDismissRequest = onDismiss,
         title = {
             Text("Enter Quantity")
         },
@@ -251,7 +251,7 @@ fun EditQuantity(
 
             )
             LaunchedEffect(focusRequester) {
-                delay(50) //for bug https://issuetracker.google.com/issues/204502668
+                delay(10) //for bug https://issuetracker.google.com/issues/204502668
                 focusRequester.requestFocus()
             }
         },
