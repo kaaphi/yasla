@@ -24,11 +24,11 @@ class DataSource(private val context: Context) {
         context.listDataStore.updateData { _ ->
             ShoppingListData.newBuilder()
                 .addAllItems(list.map {
-                    ShoppingListItemData.newBuilder()
+                    val builder =  ShoppingListItemData.newBuilder()
                         .setName(it.name)
-                        .setQuantity(it.quantity)
                         .setIsChecked(it.isChecked)
-                        .build()
+                    it.quantity?.also(builder::setQuantity)
+                    builder.build()
                 })
                 .build()
         }
