@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+option java_package = "com.kaaphi.yasla.data";
+option java_multiple_files = true;
+
+message ShoppingListData {
+  repeated ShoppingListItemData items = 1;
+}
+
+message ShoppingListItemData {
+  string name = 1;
+  string quantity = 2;
+  bool is_checked = 3;
+}
