@@ -1,5 +1,6 @@
 package com.kaaphi.yasla
 
+import android.app.Application
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
@@ -33,6 +35,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.kaaphi.yasla.model.ListItem
 import com.kaaphi.yasla.model.ShoppingListState
+import com.kaaphi.yasla.model.ShoppingListStateFactory
 import com.kaaphi.yasla.ui.theme.YaslaTheme
 import kotlinx.coroutines.delay
 import org.burnoutcrew.reorderable.ReorderableItem
@@ -43,9 +46,15 @@ import org.burnoutcrew.reorderable.reorderable
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
+            val viewModel: ShoppingListState = viewModel(factory = ShoppingListStateFactory(
+                LocalContext.current.applicationContext
+                        as Application
+            ))
+
             YaslaTheme {
-                ListApp()
+                ListApp(viewModel)
             }
         }
     }
@@ -58,7 +67,7 @@ enum class ShoppingListScreen() {
 
 @Composable
 fun ListApp(
-    viewModel: ShoppingListState = viewModel(),
+    viewModel: ShoppingListState,
     navController: NavHostController = rememberNavController()
 ) {
     NavHost(
