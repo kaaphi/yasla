@@ -2,6 +2,7 @@ package com.kaaphi.yasla.model
 
 import android.app.Application
 import android.os.Parcelable
+import android.util.Log
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.ViewModel
@@ -12,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
@@ -29,14 +31,30 @@ class ShoppingListState(val application: Application) : ViewModel() {
 
 
     init {
-        viewModelScope.launch(Dispatchers.IO) {
-            list.addAll(datasource.loadList())
-        }
+        try {
+            viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    val data = datasource.loadList()
+                    withContext(Dispatchers.Main) {
+                        list.addAll(data)
+                    }
+                } catch (e: Throwable) {
+                    Log.e("ShoppingListState", "failed to load", e)
+                }
 
-        viewModelScope.launch(Dispatchers.IO) {
-            snapshotFlow { list.toList() }.flowOn(Dispatchers.IO).collect {
-                datasource.saveList(it)
+                //only start saving after we've loaded
+                viewModelScope.launch(Dispatchers.IO) {
+                    try {
+                        snapshotFlow { list.toList() }.flowOn(Dispatchers.Main).collect {
+                            datasource.saveList(it)
+                        }
+                    } catch (e: Throwable) {
+                        Log.e("ShoppingListState", "failed to save", e)
+                    }
+                }
             }
+        } catch (th: Throwable) {
+            Log.e("ShoppingListState", "failed to init!", th)
         }
     }
 
