@@ -1,6 +1,8 @@
 name: Release APK
 on:
   push:
+#    branches:
+#      - main
 
 permissions:
   id-token: write #required for AWS creds to work
@@ -35,10 +37,17 @@ jobs:
           echo "$KEYSTORE_PROPERTIES" > app/keystore/keystore.properties
           echo "$RELEASE_KEYSTORE"|base64 --decode > app/keystore/release-key.jks
 
+      - name: Test
+        run: ./gradlew test
+
+      - name: Tag release
+#        run: ./gradlew release
+        run: ./gradlew currentVersion
+
       - name: Build APK
         run: ./gradlew assemble
 
-      - name: Release to S3
+      - name: Push to S3
         env:
           RELEASE_APK_S3_URI: ${{ secrets.RELEASE_APK_S3_URI }}
         run: aws s3 cp app/build/outputs/apk/release $RELEASE_APK_S3_URI --recursive --exclude "*" --include "*.apk"
