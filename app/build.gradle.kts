@@ -30,6 +30,7 @@ android {
         targetSdk = 33
         versionCode = 1
         versionName = "1.0"
+        setProperty("archivesBaseName", "yasla-$versionName")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

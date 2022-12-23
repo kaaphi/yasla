@@ -2,11 +2,21 @@ name: Release APK
 on:
   push:
 
+permissions:
+  id-token: write #required for AWS creds to work
+
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE }}
+          aws-region: us-east-2
+
       - uses: actions/setup-java@v3
         with:
           java-version: 11
@@ -27,3 +37,8 @@ jobs:
 
       - name: Build APK
         run: ./gradlew assemble
+
+      - name: Release to S3
+        env:
+          RELEASE_APK_S3_URI: ${{ secrets.RELEASE_APK_S3_URI }}
+        run: aws s3 cp app/build/outputs/apk/release $RELEASE_APK_S3_URI --recursive --exclude "*" --include "*.apk"
