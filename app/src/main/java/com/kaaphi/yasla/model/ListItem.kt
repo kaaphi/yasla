@@ -27,6 +27,7 @@ data class ListItem(
 
 class ShoppingListState(val application: Application) : ViewModel() {
     val list = mutableStateListOf<ListItem>()
+    val itemNames = mutableSetOf<String>()
     val editItemState = MutableStateFlow<ListItem?>(null)
     val datasource = DataSource(context = application)
 
@@ -37,7 +38,11 @@ class ShoppingListState(val application: Application) : ViewModel() {
                 try {
                     val data = datasource.loadList()
                     withContext(Dispatchers.Main) {
-                        list.addAll(data)
+                        data.forEach {
+                            if(itemNames.add(it.name)) {
+                                list.add(it)
+                            }
+                        }
                     }
                 } catch (e: Throwable) {
                     Log.e("ShoppingListState", "failed to load", e)
@@ -71,16 +76,29 @@ class ShoppingListState(val application: Application) : ViewModel() {
     }
 
     fun updateItem(item: ListItem, updateBlock: ListItem.() -> ListItem) {
+        val newItem = item.updateBlock()
+
+        require(newItem.name == item.name)
+
         //there must be a better way
-        list[list.indexOf(item)] = item.updateBlock()
+        list[list.indexOf(item)] = newItem
     }
 
     fun deleteCheckedItems() {
-        list.removeIf(ListItem::isChecked)
+        list.removeIf {
+            if(it.isChecked) {
+                itemNames.remove(it.name)
+                true
+            } else {
+                false
+            }
+        }
     }
 
     fun addItem(itemName: String) {
-        list.add(0, ListItem(itemName))
+        if(itemNames.add(itemName)) {
+            list.add(0, ListItem(itemName))
+        }
     }
 }
 
