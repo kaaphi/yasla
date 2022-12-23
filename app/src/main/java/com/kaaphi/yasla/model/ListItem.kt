@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import com.kaaphi.yasla.data.DataSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -45,7 +46,10 @@ class ShoppingListState(val application: Application) : ViewModel() {
                 //only start saving after we've loaded
                 viewModelScope.launch(Dispatchers.IO) {
                     try {
-                        snapshotFlow { list.toList() }.flowOn(Dispatchers.Main).collect {
+                        snapshotFlow { list.toList() }
+                            .flowOn(Dispatchers.Main)
+                            .conflate()
+                            .collect {
                             datasource.saveList(it)
                         }
                     } catch (e: Throwable) {
