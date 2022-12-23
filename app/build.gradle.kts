@@ -2,6 +2,8 @@ import com.google.protobuf.gradle.builtins
 import com.google.protobuf.gradle.generateProtoTasks
 import com.google.protobuf.gradle.protobuf
 import com.google.protobuf.gradle.protoc
+import java.io.FileInputStream
+import java.util.*
 
 plugins {
     id("com.android.application")
@@ -11,6 +13,12 @@ plugins {
 }
 
 val compose_version = rootProject.extra.get("compose_version") as String
+
+val keystoreProperties = Properties().apply {
+    FileInputStream(file("keystore/keystore.properties")).use {
+        load(it)
+    }
+}
 
 android {
     namespace = "com.kaaphi.yasla"
@@ -29,9 +37,19 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            keyAlias = keystoreProperties["keyAlias"] as String
+            keyPassword = keystoreProperties["keyPassword"] as String
+            storeFile = file(keystoreProperties["storeFile"] as String)
+            storePassword = keystoreProperties["storePassword"] as String
+        }
+    }
+
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
