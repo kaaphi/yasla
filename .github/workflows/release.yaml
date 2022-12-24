@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1-node16
@@ -41,7 +43,9 @@ jobs:
         run: ./gradlew test
 
       - name: Tag release
-        run: ./gradlew release
+        run: ./gradlew release \
+          -Prelease.customUsername=${{ github.actor }} \
+          -Prelease.customPassword=${{ github.token }}
 
       - name: Build APK
         run: ./gradlew assemble
