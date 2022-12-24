@@ -6,6 +6,7 @@ on:
 
 permissions:
   id-token: write #required for AWS creds to work
+  contents: write #allow tag push for versions
 
 jobs:
   release:
@@ -42,7 +43,7 @@ jobs:
         run: ./gradlew test
 
       - name: Tag release
-        run: ./gradlew release -Prelease.customUsername=${{ github.actor }} -Prelease.customPassword=${{ github.token }}
+        run: ./gradlew release -Prelease.disableChecks -Prelease.pushTagsOnly -Prelease.customUsername=${{ github.actor }} -Prelease.customPassword=${{ github.token }}
 
       - name: Build APK
         run: ./gradlew assemble
