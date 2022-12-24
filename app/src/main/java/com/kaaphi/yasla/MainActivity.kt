@@ -6,23 +6,48 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
@@ -36,6 +61,7 @@ import androidx.navigation.compose.rememberNavController
 import com.kaaphi.yasla.model.ListItem
 import com.kaaphi.yasla.model.ShoppingListState
 import com.kaaphi.yasla.model.ShoppingListStateFactory
+import com.kaaphi.yasla.ui.ClickableLinks
 import com.kaaphi.yasla.ui.theme.YaslaTheme
 import kotlinx.coroutines.delay
 import org.burnoutcrew.reorderable.ReorderableItem
@@ -62,7 +88,8 @@ class MainActivity : ComponentActivity() {
 
 enum class ShoppingListScreen() {
     List,
-    AddItem
+    AddItem,
+    About,
 }
 
 @Composable
@@ -107,7 +134,11 @@ fun ListApp(
                     },
                     onAddButtonClicked = {
                         navController.navigate(ShoppingListScreen.AddItem.name)
-                    })
+                    },
+                    onAboutClicked = {
+                        navController.navigate(ShoppingListScreen.About.name)
+                    }
+                )
             }
         }
 
@@ -116,6 +147,10 @@ fun ListApp(
                 viewModel.addItem(itemName)
                 navController.navigate(ShoppingListScreen.List.name)
             })
+        }
+
+        composable(route = ShoppingListScreen.About.name) {
+            About()
         }
     }
 }
@@ -190,9 +225,38 @@ fun BottomBar(
     modifier: Modifier = Modifier,
     onClearCheckedItemsClicked: () -> Unit,
     onAddButtonClicked: () -> Unit,
+    onAboutClicked: () -> Unit,
 ) {
+    val expanded = remember { mutableStateOf(false)}
+
     BottomAppBar(
+        modifier = modifier,
         actions = {
+            Box(
+                Modifier
+                    .wrapContentSize(Alignment.TopEnd)
+            ) {
+                IconButton(onClick = {
+                    expanded.value = true
+                }) {
+                    Icon(
+                        Icons.Filled.Menu,
+                        contentDescription = "More actions"
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = expanded.value,
+                    onDismissRequest = { expanded.value = false },
+                ) {
+                    DropdownMenuItem(
+                        text = {Text("About")},
+                        onClick = {
+                            expanded.value = false
+                            onAboutClicked.invoke()
+                        })
+                }
+            }
             Button(onClick = onClearCheckedItemsClicked) {
                 Text("Clear Checked Items")
             }
@@ -203,6 +267,35 @@ fun BottomBar(
             }
         }
     )
+}
+
+@Composable
+fun About(
+    modifier: Modifier = Modifier
+) {
+    val links = ClickableLinks(
+        linkStyle = SpanStyle(
+            color = MaterialTheme.colorScheme.primary,
+            textDecoration = TextDecoration.Underline
+        ),
+        uriHandler = LocalUriHandler.current
+    ) { link ->
+        link.appendLink("Notebook icon",
+            "https://game-icons.net/1x1/delapouite/notebook.html")
+        append(" by ")
+        link.appendLink("Delapouite", "https://delapouite.com/")
+        append(" licensed under ")
+        link.appendLink("CC BY 3.0", "http://creativecommons.org/licenses/by/3.0/")
+        append(" is used as the app icon.")
+    }
+
+    Column(modifier = modifier.padding(all = 20.dp)) {
+        Text(text = "About", style = MaterialTheme.typography.headlineSmall)
+        ClickableText(
+            text = links.annotatedString,
+            onClick = links::onClick,
+            style = MaterialTheme.typography.bodyLarge)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -285,6 +378,6 @@ fun EditQuantity(
 @Composable
 fun ListItemPreview() {
     YaslaTheme {
-        AddItem() {}
+        About()
     }
 }
