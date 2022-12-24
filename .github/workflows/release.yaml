@@ -50,4 +50,6 @@ jobs:
       - name: Push to S3
         env:
           RELEASE_APK_S3_URI: ${{ secrets.RELEASE_APK_S3_URI }}
-        run: aws s3 cp app/build/outputs/apk/release $RELEASE_APK_S3_URI --recursive --exclude "*" --include "*.apk"
+        run: |
+          aws s3 mv ${RELEASE_APK_S3_URI} ${RELEASE_APK_S3_URI}archive/ --recursive --exclude "archive/*"
+          aws s3 cp app/build/outputs/apk/release $RELEASE_APK_S3_URI --recursive --exclude "*" --include "*.apk"
