@@ -26,11 +26,10 @@ data class ListItem(
 ) : Parcelable
 
 
-class ShoppingListState(val application: Application) : ViewModel() {
+class ShoppingListState(val datasource: DataSource) : ViewModel() {
     val list = mutableStateListOf<ListItem>()
     val itemNames = mutableSetOf<String>()
     val editItemState = MutableStateFlow<ListItem?>(null)
-    val datasource = DataSource(context = application)
     val errors = MutableSharedFlow<String>(
         replay = 10,
         extraBufferCapacity = 10
@@ -119,6 +118,6 @@ class ShoppingListState(val application: Application) : ViewModel() {
 class ShoppingListStateFactory(private val application: Application) :
     ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return ShoppingListState(application) as T
+        return ShoppingListState(DataSource(context = application)) as T
     }
 }
