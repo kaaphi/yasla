@@ -7,10 +7,10 @@ import androidx.datastore.core.Serializer
 import androidx.datastore.dataStore
 import com.google.protobuf.InvalidProtocolBufferException
 import com.kaaphi.yasla.model.ListItem
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import java.io.InputStream
 import java.io.OutputStream
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 
 class DataSource(private val context: Context) {
     suspend fun loadList() =
