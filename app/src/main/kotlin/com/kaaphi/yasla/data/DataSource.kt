@@ -22,15 +22,15 @@ class DataSource(private val context: Context) {
 
     suspend fun saveList(list: List<ListItem>) =
         context.listDataStore.updateData { _ ->
-            ShoppingListData.newBuilder()
-                .addAllItems(list.map {
-                    val builder =  ShoppingListItemData.newBuilder()
-                        .setName(it.name)
-                        .setIsChecked(it.isChecked)
-                    it.quantity?.also(builder::setQuantity)
-                    builder.build()
+            shoppingListData {
+                items.addAll(list.map {
+                    shoppingListItemData {
+                        name = it.name
+                        isChecked = it.isChecked
+                        it.quantity?.also(::quantity::set)
+                    }
                 })
-                .build()
+            }
         }
 }
 
