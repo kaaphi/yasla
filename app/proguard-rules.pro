@@ -19,3 +19,9 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Needed because the java-lite protobuf uses reflection
+-keep class * extends com.google.protobuf.GeneratedMessageLite { *; }
+# Should eventually be able to use the following directive, but not clear to me
+# how to upgrade R8 (https://issuetracker.google.com/issues/144631039)
+#-shrinkunusedprotofields
