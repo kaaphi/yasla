@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
@@ -52,6 +53,7 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
@@ -333,7 +335,8 @@ fun AddItem(
         TextField(
             value = text.value,
             onValueChange = { text.value = it },
-            modifier = Modifier.focusRequester(focusRequester)
+            modifier = Modifier.focusRequester(focusRequester),
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words)
         )
         Button(onClick = {
             onAddItemClicked(text.value)
@@ -372,10 +375,9 @@ fun EditQuantity(
                 value = text.value,
                 onValueChange = { text.value = it },
                 modifier = Modifier.focusRequester(focusRequester),
-
             )
             LaunchedEffect(focusRequester) {
-                delay(10) //for bug https://issuetracker.google.com/issues/204502668
+                delay(100) //for bug https://issuetracker.google.com/issues/204502668
                 focusRequester.requestFocus()
             }
         },
