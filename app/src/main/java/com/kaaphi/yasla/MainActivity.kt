@@ -31,6 +31,8 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -39,6 +41,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -64,6 +67,7 @@ import com.kaaphi.yasla.model.ShoppingListStateFactory
 import com.kaaphi.yasla.ui.ClickableLinks
 import com.kaaphi.yasla.ui.theme.YaslaTheme
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.burnoutcrew.reorderable.ReorderableItem
 import org.burnoutcrew.reorderable.detectReorder
 import org.burnoutcrew.reorderable.rememberReorderableLazyListState
@@ -97,61 +101,79 @@ fun ListApp(
     viewModel: ShoppingListState,
     navController: NavHostController = rememberNavController()
 ) {
-    NavHost(
-        navController = navController,
-        startDestination = ShoppingListScreen.List.name
-    ) {
-        composable(route = ShoppingListScreen.List.name) {
-            val editItem: ListItem? by viewModel.editItemState.collectAsState()
-            editItem?.let { item ->
-                EditQuantity(
-                    item = item,
-                    onChangeQuantity = { quantity ->
-                        viewModel.updateItem(item) {
-                            copy(quantity = quantity)
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect("snackbar") {
+        scope.launch {
+            viewModel.errors.collect {
+                snackbarHostState.showSnackbar(it, withDismissAction = true)
+            }
+        }
+    }
+
+    Box {
+        NavHost(
+            navController = navController,
+            startDestination = ShoppingListScreen.List.name
+        ) {
+            composable(route = ShoppingListScreen.List.name) {
+                val editItem: ListItem? by viewModel.editItemState.collectAsState()
+                editItem?.let { item ->
+                    EditQuantity(
+                        item = item,
+                        onChangeQuantity = { quantity ->
+                            viewModel.updateItem(item) {
+                                copy(quantity = quantity)
+                            }
+                            viewModel.editItem(null)
+                        },
+                        onDismiss = {
+                            viewModel.editItem(null)
+                        })
+                }
+
+                Column {
+                    ShoppingList(
+                        modifier = Modifier.weight(1f),
+                        list = viewModel.list,
+                        onMoveItem = viewModel::moveItem,
+                        onItemCheckChange = { isChecked ->
+                            viewModel.updateItem(this) {
+                                copy(isChecked = isChecked)
+                            }
+                        },
+                        onEditItemClicked = viewModel::editItem
+                    )
+                    BottomBar(
+                        onClearCheckedItemsClicked = {
+                            viewModel.deleteCheckedItems()
+                        },
+                        onAddButtonClicked = {
+                            navController.navigate(ShoppingListScreen.AddItem.name)
+                        },
+                        onAboutClicked = {
+                            navController.navigate(ShoppingListScreen.About.name)
                         }
-                        viewModel.editItem(null)
-                    },
-                    onDismiss = {
-                        viewModel.editItem(null)
-                    })
+                    )
+                }
             }
 
-            Column {
-                ShoppingList(modifier = Modifier.weight(1f),
-                    list = viewModel.list,
-                    onMoveItem = viewModel::moveItem,
-                    onItemCheckChange = { isChecked ->
-                        viewModel.updateItem(this) {
-                            copy(isChecked = isChecked)
-                        }
-                    },
-                    onEditItemClicked = viewModel::editItem
-                )
-                BottomBar(
-                    onClearCheckedItemsClicked = {
-                        viewModel.deleteCheckedItems()
-                    },
-                    onAddButtonClicked = {
-                        navController.navigate(ShoppingListScreen.AddItem.name)
-                    },
-                    onAboutClicked = {
-                        navController.navigate(ShoppingListScreen.About.name)
+            composable(route = ShoppingListScreen.AddItem.name) {
+                AddItem(onAddItemClicked = { itemName ->
+                    scope.launch {
+                        viewModel.addItem(itemName)
                     }
-                )
+                    navController.navigate(ShoppingListScreen.List.name)
+                })
+            }
+
+            composable(route = ShoppingListScreen.About.name) {
+                About()
             }
         }
 
-        composable(route = ShoppingListScreen.AddItem.name) {
-            AddItem(onAddItemClicked = { itemName ->
-                viewModel.addItem(itemName)
-                navController.navigate(ShoppingListScreen.List.name)
-            })
-        }
-
-        composable(route = ShoppingListScreen.About.name) {
-            About()
-        }
+        SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.Center))
     }
 }
 

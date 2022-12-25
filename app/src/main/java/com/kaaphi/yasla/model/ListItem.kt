@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.kaaphi.yasla.data.DataSource
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.flowOn
@@ -30,6 +31,10 @@ class ShoppingListState(val application: Application) : ViewModel() {
     val itemNames = mutableSetOf<String>()
     val editItemState = MutableStateFlow<ListItem?>(null)
     val datasource = DataSource(context = application)
+    val errors = MutableSharedFlow<String>(
+        replay = 10,
+        extraBufferCapacity = 10
+    )
 
 
     init {
@@ -46,6 +51,7 @@ class ShoppingListState(val application: Application) : ViewModel() {
                     }
                 } catch (e: Throwable) {
                     Log.e("ShoppingListState", "failed to load", e)
+                    errors.emit("Failed to load list data!")
                 }
 
                 //only start saving after we've loaded
@@ -55,10 +61,16 @@ class ShoppingListState(val application: Application) : ViewModel() {
                             .flowOn(Dispatchers.Main)
                             .conflate()
                             .collect {
-                            datasource.saveList(it)
-                        }
+                                try {
+                                    datasource.saveList(it)
+                                } catch (e: Throwable) {
+                                    Log.e("ShoppingListState", "failed to save!", e)
+                                    errors.emit("Failed to save list data!")
+                                }
+                            }
                     } catch (e: Throwable) {
-                        Log.e("ShoppingListState", "failed to save", e)
+                        Log.e("ShoppingListState", "failed to collect state for saving", e)
+                        errors.emit("Failed to initialize data saving!")
                     }
                 }
             }
@@ -95,9 +107,11 @@ class ShoppingListState(val application: Application) : ViewModel() {
         }
     }
 
-    fun addItem(itemName: String) {
+    suspend fun addItem(itemName: String) {
         if(itemNames.add(itemName)) {
             list.add(0, ListItem(itemName))
+        } else {
+            errors.emit("Item $itemName is already in the list!")
         }
     }
 }
