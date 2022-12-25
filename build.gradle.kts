@@ -1,13 +1,9 @@
-buildscript {
-    extra.apply{
-        set("compose_version", "1.3.2")
-    }
-}// Top-level build file where you can add configuration options common to all sub-projects/modules.
+@Suppress("DSL_SCOPE_VIOLATION")  // TODO: Remove once KTIJ-19369 is fixed
 plugins {
-    id("com.android.application") version "7.3.1" apply false
-    id("com.android.library") version "7.3.1" apply false
-    id("org.jetbrains.kotlin.android") version "1.7.20" apply false
-    id("pl.allegro.tech.build.axion-release") version "1.14.3"
+    alias(libs.plugins.android.application) apply false
+    alias(libs.plugins.android.library) apply false
+    alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.axion.release)
 }
 
 val pl.allegro.tech.build.axion.release.domain.VersionConfig.versionCode : Int
