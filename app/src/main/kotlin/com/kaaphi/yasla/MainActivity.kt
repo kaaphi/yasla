@@ -6,11 +6,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -50,6 +52,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
@@ -186,15 +189,11 @@ fun ListItemRow(item: ListItem, modifier: Modifier = Modifier, reorderModifier: 
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
     ) {
-        Checkbox(checked = item.isChecked, onCheckedChange = onCheckedChange)
-        val decoration = if (item.isChecked) {
-            TextDecoration.LineThrough
-        } else {
-            TextDecoration.None
-        }
-        Text("${item.quantity?.let{"$it "} ?: ""}${item.name}", textDecoration = decoration)
-        Spacer(modifier = Modifier.weight(1f))
-        FilledIconButton(onClick = {
+        ListItemCheckbox(item = item, onCheckedChange = onCheckedChange, modifier = Modifier.weight(1f))
+
+        FilledIconButton(
+            modifier = Modifier.testTag("EditItem"),
+            onClick = {
             onEditItemClicked.invoke(item)
         }) {
             Icon(Icons.Default.Edit, contentDescription = "Edit")
@@ -205,6 +204,26 @@ fun ListItemRow(item: ListItem, modifier: Modifier = Modifier, reorderModifier: 
                 contentDescription = "Reorder"
             )
         }
+    }
+}
+
+@Composable
+fun ListItemCheckbox(item: ListItem, modifier: Modifier = Modifier, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .clickable {
+                onCheckedChange(!item.isChecked)
+            }
+    ) {
+        Checkbox(modifier = Modifier.testTag("CheckItem"), checked = item.isChecked, onCheckedChange = null)
+        val decoration = if (item.isChecked) {
+            TextDecoration.LineThrough
+        } else {
+            TextDecoration.None
+        }
+        Spacer(Modifier.size(10.dp).testTag("CheckSpacer"))
+        Text("${item.quantity?.let{"$it "} ?: ""}${item.name}", textDecoration = decoration)
     }
 }
 
