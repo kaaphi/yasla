@@ -12,27 +12,39 @@ import java.io.OutputStream
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
-class DataSource(private val context: Context) {
+
+class DataSource(private val dataStore: DataStore<ShoppingListData>) {
+    constructor(context: Context): this(context.listDataStore)
+
     suspend fun loadList() =
-        context.listDataStore.data.map { list ->
-            list.itemsList.map {
-                ListItem(it.name, it.quantity, it.isChecked)
-            }
-        }.first()
+        dataStore.data.map(ShoppingListData::toListItemList).first()
 
     suspend fun saveList(list: List<ListItem>) =
-        context.listDataStore.updateData { _ ->
-            shoppingListData {
-                items.addAll(list.map {
-                    shoppingListItemData {
-                        name = it.name
-                        isChecked = it.isChecked
-                        it.quantity?.also(::quantity::set)
-                    }
-                })
-            }
+        dataStore.updateData {
+            list.toShoppingListData()
         }
 }
+
+fun ShoppingListData.toListItemList() : List<ListItem> =
+    itemsList.map(ShoppingListItemData::toListItem)
+
+fun ShoppingListItemData.toListItem() : ListItem =
+    ListItem(name, quantity.ifEmpty { null }, isChecked)
+
+fun ListItem.toShoppingListItemData() : ShoppingListItemData =
+    shoppingListItemData {
+        name = this@toShoppingListItemData.name
+        isChecked = this@toShoppingListItemData.isChecked
+        this@toShoppingListItemData.quantity?.also {
+            quantity = it
+        }
+    }
+
+fun List<ListItem>.toShoppingListData() =
+    shoppingListData {
+        items.addAll(map(ListItem::toShoppingListItemData))
+    }
+
 
 object ListDataSerializer : Serializer<ShoppingListData> {
     override val defaultValue: ShoppingListData
