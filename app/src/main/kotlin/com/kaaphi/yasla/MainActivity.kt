@@ -17,9 +17,11 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.AlertDialog
@@ -38,6 +40,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -53,9 +56,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
@@ -200,7 +203,7 @@ fun ListItemRow(item: ListItem, modifier: Modifier = Modifier, reorderModifier: 
         }
         FilledIconButton(onClick = {}, modifier = reorderModifier) {
             Icon(
-                painter = painterResource(R.drawable.ic_round_reorder_24),
+                Icons.Default.DragIndicator,
                 contentDescription = "Reorder"
             )
         }
@@ -222,7 +225,10 @@ fun ListItemCheckbox(item: ListItem, modifier: Modifier = Modifier, onCheckedCha
         } else {
             TextDecoration.None
         }
-        Spacer(Modifier.size(10.dp).testTag("CheckSpacer"))
+        Spacer(
+            Modifier
+                .size(10.dp)
+                .testTag("CheckSpacer"))
         Text("${item.quantity?.let{"$it "} ?: ""}${item.name}", textDecoration = decoration)
     }
 }
@@ -243,6 +249,7 @@ fun ShoppingList(
         state = state.listState,
         modifier = modifier
             .reorderable(state)
+            .padding(horizontal = 10.dp)
     ) {
         items(list, { it }) { item ->
             ReorderableItem(state, key = item) { isDragging ->
@@ -350,14 +357,28 @@ fun AddItem(
     val text = remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
 
-    Row {
+    Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)) {
         TextField(
             value = text.value,
             onValueChange = { text.value = it },
-            modifier = Modifier.focusRequester(focusRequester),
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words)
+            modifier = Modifier
+                .focusRequester(focusRequester)
+                .weight(1f),
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Words,
+                imeAction = ImeAction.Go,
+            ),
+            singleLine = true,
+            keyboardActions = KeyboardActions {
+                onAddItemClicked(text.value)
+            },
+            colors = TextFieldDefaults.textFieldColors(
+                //make background match the background of the add button
+                containerColor = MaterialTheme.colorScheme.background
+            ),
         )
-        Button(onClick = {
+        Button(
+            onClick = {
             onAddItemClicked(text.value)
         }) {
             Text("Add Item")
@@ -384,6 +405,8 @@ fun EditQuantity(
     )) }
     val focusRequester = remember { FocusRequester() }
 
+    val onConfirm = {onChangeQuantity.invoke(text.value.text.ifBlank { null })}
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -394,6 +417,13 @@ fun EditQuantity(
                 value = text.value,
                 onValueChange = { text.value = it },
                 modifier = Modifier.focusRequester(focusRequester),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Go
+                ),
+                keyboardActions = KeyboardActions {
+                    onConfirm()
+                }
             )
             LaunchedEffect(focusRequester) {
                 delay(100) //for bug https://issuetracker.google.com/issues/204502668
@@ -402,7 +432,7 @@ fun EditQuantity(
         },
         confirmButton = {
             Button(onClick = {
-                onChangeQuantity.invoke(text.value.text.ifBlank { null })
+                onConfirm()
             }) {
                 Text("OK")
             }
@@ -421,6 +451,6 @@ fun EditQuantity(
 @Composable
 fun ListItemPreview() {
     YaslaTheme {
-        About()
+        AddItem(onAddItemClicked = {})
     }
 }

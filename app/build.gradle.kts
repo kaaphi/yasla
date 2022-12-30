@@ -101,6 +101,7 @@ dependencies {
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.tooling)
     implementation(libs.compose.material3)
+    implementation(libs.compose.extended.icons)
     implementation(libs.composereorderable)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.datastore)
