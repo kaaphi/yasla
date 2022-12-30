@@ -92,6 +92,10 @@ protobuf {
     }
 }
 
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
+}
+
 dependencies {
 
     implementation(libs.androidx.core)
@@ -107,7 +111,10 @@ dependencies {
     implementation(libs.androidx.datastore)
     implementation(libs.protobuf.kotlin.lite)
 
-    testImplementation(libs.junit)
+    testImplementation(libs.kotest.runner)
+    testImplementation(libs.kotest.assertions)
+
+    androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.compose.ui.test.junit4)
