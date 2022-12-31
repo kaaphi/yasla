@@ -111,8 +111,7 @@ dependencies {
     implementation(libs.androidx.datastore)
     implementation(libs.protobuf.kotlin.lite)
 
-    testImplementation(libs.kotest.runner)
-    testImplementation(libs.kotest.assertions)
+    testImplementation(libs.bundles.kotest)
 
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
