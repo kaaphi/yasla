@@ -29,9 +29,10 @@ androidx-customview-poolingcontainer = { module = "androidx.customview:customvie
 
 kotest-runner = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
 kotest-assertions = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
+kotest-data = { module = "io.kotest:kotest-framework-datatest", version.ref = "kotest" }
 
 [bundles]
-
+kotest = [ "kotest-runner", "kotest-assertions", "kotest-data" ]
 
 [plugins]
 protobuf = { id = "com.google.protobuf", version = "0.8.19" }
