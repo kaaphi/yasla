@@ -11,7 +11,7 @@ interface StoreListDao {
     @Query("SELECT * FROM Store")
     suspend fun getStores(): List<Store>
 
-    @Query("SELECT * FROM StoreItem WHERE storeItem_storeId = :storeId AND isInList = 1")
+    @Query("SELECT * FROM StoreItem WHERE storeItem_storeId = :storeId AND isInList = 1 ORDER BY rank")
     suspend fun getStoreList(storeId: Long) : List<StoreItem>
 
     suspend fun getStoreList(store: Store) : List<StoreItem> =
@@ -23,6 +23,16 @@ interface StoreListDao {
     suspend fun insertStore(store: Store): Store =
         store.copy(id = insertStoreAndReturnId(store))
 
+    @Query("SELECT * FROM StoreItem WHERE storeItem_storeId = :storeId AND storeItem_name = :name")
+    suspend fun getItemByName(storeId: Long, name: String) : StoreItem?
+
+    @Query("SELECT * FROM StoreItem WHERE storeItem_storeId = :storeId AND rank = :rank")
+    suspend fun getItemByRank(storeId: Long, rank: String) : StoreItem?
+
+    @Query("SELECT rank FROM StoreItem " +
+            "WHERE storeItem_storeId = :storeId AND rank >= :startRank AND rank <= :endRank " +
+            "ORDER BY rank")
+    suspend fun getRanks(storeId: Long, startRank: String, endRank: String) : List<String>
 
     @Insert
     suspend fun insertStoreItemAndReturnId(item: StoreItem) : Long

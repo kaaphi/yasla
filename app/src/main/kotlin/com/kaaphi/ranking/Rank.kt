@@ -2,7 +2,7 @@ package com.kaaphi.ranking
 
 const val RANK_RADIX = 36
 const val DEFAULT_BASE_RANK_LENGTH = 5
-private val RANK_MIDDLE = (RANK_RADIX/2).toString(RANK_RADIX)
+val RANK_MIDDLE = (RANK_RADIX/2).toString(RANK_RADIX)
 
 
 infix fun String.rankBetween(other: String) : String =

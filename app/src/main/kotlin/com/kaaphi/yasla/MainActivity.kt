@@ -69,7 +69,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.kaaphi.yasla.model.ListItem
+import com.kaaphi.yasla.data.StoreItem
 import com.kaaphi.yasla.model.ShoppingListState
 import com.kaaphi.yasla.model.ShoppingListStateFactory
 import com.kaaphi.yasla.ui.ClickableLinks
@@ -126,13 +126,15 @@ fun ListApp(
             startDestination = ShoppingListScreen.List.name
         ) {
             composable(route = ShoppingListScreen.List.name) {
-                val editItem: ListItem? by viewModel.editItemState.collectAsState()
+                val editItem: StoreItem? by viewModel.editItemState.collectAsState()
                 editItem?.let { item ->
                     EditQuantity(
                         item = item,
                         onChangeQuantity = { quantity ->
-                            viewModel.updateItem(item) {
-                                copy(quantity = quantity)
+                            scope.launch {
+                                viewModel.updateItem(item) {
+                                    copy(quantity = quantity)
+                                }
                             }
                             viewModel.editItem(null)
                         },
@@ -145,17 +147,26 @@ fun ListApp(
                     ShoppingList(
                         modifier = Modifier.weight(1f),
                         list = viewModel.list,
-                        onMoveItem = viewModel::moveItem,
+                        onMoveItem = { from, to, isDone ->
+                            if(!isDone) {
+                                viewModel.moveItemInView(from, to)
+                            } else {
+                                scope.launch { viewModel.updateRankAfterMove(to) }
+                            }
+                        },
                         onItemCheckChange = { isChecked ->
-                            viewModel.updateItem(this) {
-                                copy(isChecked = isChecked)
+                            val item = this
+                            scope.launch {
+                                viewModel.updateItem(item) {
+                                    copy(isChecked = isChecked)
+                                }
                             }
                         },
                         onEditItemClicked = viewModel::editItem
                     )
                     BottomBar(
                         onClearCheckedItemsClicked = {
-                            viewModel.deleteCheckedItems()
+                            scope.launch { viewModel.deleteCheckedItems() }
                         },
                         onAddButtonClicked = {
                             navController.navigate(ShoppingListScreen.AddItem.name)
@@ -186,8 +197,8 @@ fun ListApp(
 }
 
 @Composable
-fun ListItemRow(item: ListItem, modifier: Modifier = Modifier, reorderModifier: Modifier = Modifier,
-                onCheckedChange: (Boolean) -> Unit, onEditItemClicked: (ListItem) -> Unit) {
+fun ListItemRow(item: StoreItem, modifier: Modifier = Modifier, reorderModifier: Modifier = Modifier,
+                onCheckedChange: (Boolean) -> Unit, onEditItemClicked: (StoreItem) -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -211,7 +222,7 @@ fun ListItemRow(item: ListItem, modifier: Modifier = Modifier, reorderModifier: 
 }
 
 @Composable
-fun ListItemCheckbox(item: ListItem, modifier: Modifier = Modifier, onCheckedChange: (Boolean) -> Unit) {
+fun ListItemCheckbox(item: StoreItem, modifier: Modifier = Modifier, onCheckedChange: (Boolean) -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -236,13 +247,15 @@ fun ListItemCheckbox(item: ListItem, modifier: Modifier = Modifier, onCheckedCha
 @Composable
 fun ShoppingList(
     modifier: Modifier = Modifier,
-    list: List<ListItem>,
-    onMoveItem: (from: Int, to: Int) -> Unit,
-    onItemCheckChange: ListItem.(Boolean)->Unit,
-    onEditItemClicked: (ListItem)->Unit
+    list: List<StoreItem>,
+    onMoveItem: (from: Int, to: Int, isDone: Boolean) -> Unit,
+    onItemCheckChange: StoreItem.(Boolean)->Unit,
+    onEditItemClicked: (StoreItem)->Unit
 ) {
     val state = rememberReorderableLazyListState(onMove = { from, to ->
-        onMoveItem(from.index, to.index)
+        onMoveItem(from.index, to.index, false)
+    }, onDragEnd = { from, to ->
+        onMoveItem(from, to, true)
     })
 
     LazyColumn(
@@ -394,7 +407,7 @@ fun AddItem(
 @Composable
 fun EditQuantity(
     modifier: Modifier = Modifier,
-    item: ListItem,
+    item: StoreItem,
     onChangeQuantity: (String?) -> Unit,
     onDismiss: () -> Unit,
 ) {
