@@ -11,6 +11,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("kotlin-parcelize")
     alias(libs.plugins.protobuf)
+    alias(libs.plugins.ksp)
 }
 
 val keystoreProperties = Properties().apply {
@@ -108,8 +109,15 @@ dependencies {
     implementation(libs.compose.extended.icons)
     implementation(libs.composereorderable)
     implementation(libs.androidx.navigation.compose)
+
+    //datastore impl
     implementation(libs.androidx.datastore)
     implementation(libs.protobuf.kotlin.lite)
+
+    //room impl
+    implementation(libs.bundles.room)
+    annotationProcessor(libs.room.compiler)
+    ksp(libs.room.compiler)
 
     testImplementation(libs.bundles.kotest)
 
