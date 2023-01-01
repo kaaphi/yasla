@@ -5,7 +5,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasTextExactly
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.performClick
-import com.kaaphi.yasla.model.ListItem
+import com.kaaphi.yasla.data.StoreItem
 import com.kaaphi.yasla.ui.theme.YaslaTheme
 import junit.framework.Assert.assertFalse
 import junit.framework.Assert.assertTrue
@@ -18,7 +18,7 @@ class ShoppingListComposeTest {
 
     @Test
     fun myTest() {
-        val item = mutableStateOf(ListItem("my item"))
+        val item = mutableStateOf(StoreItem(storeId = 0, name = "my item", rank = "none"))
         composeTestRule.setContent {
             YaslaTheme {
                 ListItemCheckbox(item = item.value, onCheckedChange = {

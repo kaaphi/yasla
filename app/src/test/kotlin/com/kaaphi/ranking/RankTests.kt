@@ -53,7 +53,7 @@ class RankTests : FunSpec({
                     val idx = list.binarySearchBy(newValue, selector = Ranked<Long>::item)
                     if(idx < 0) {
                         val insertionPoint = -(idx + 1)
-                        list.add(insertionPoint, Ranked(newValue, list.calculateRank(insertionPoint,
+                        list.add(insertionPoint, Ranked(newValue, list.calculateInsertRank(insertionPoint,
                             Ranked<*>::rank
                         )))
 
