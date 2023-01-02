@@ -58,6 +58,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
@@ -294,9 +295,12 @@ fun ShoppingList(
         onMoveItem(from, to, true)
     })
 
+    val listHeightPx = remember { mutableStateOf(0) }
+
     if(justAdded != null) {
         LaunchedEffect("scroll to item") {
-            state.listState.animateScrollToItem(list.indexOf(justAdded))
+            //scroll just-added item to the center of the list
+            state.listState.animateScrollToItem(list.indexOf(justAdded), -(listHeightPx.value/2))
         }
     }
 
@@ -304,6 +308,9 @@ fun ShoppingList(
         state = state.listState,
         modifier = modifier
             .reorderable(state)
+            .onGloballyPositioned {
+                listHeightPx.value = it.size.height
+            }
     ) {
         items(list, { it }) { item ->
             ReorderableItem(state, key = item) { isDragging ->
