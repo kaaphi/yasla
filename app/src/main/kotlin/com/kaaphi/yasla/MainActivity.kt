@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -64,10 +63,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -80,6 +77,7 @@ import com.kaaphi.yasla.data.StoreItem
 import com.kaaphi.yasla.model.ShoppingListState
 import com.kaaphi.yasla.model.ShoppingListStateFactory
 import com.kaaphi.yasla.ui.ClickableLinks
+import com.kaaphi.yasla.ui.TextInputDialog
 import com.kaaphi.yasla.ui.theme.YaslaTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -145,9 +143,10 @@ fun ListApp(
             composable(route = ShoppingListScreen.List.name) {
                 val editItem: StoreItem? by viewModel.editItemState.collectAsState()
                 editItem?.let { item ->
-                    EditQuantity(
-                        item = item,
-                        onChangeQuantity = { quantity ->
+                    TextInputDialog(
+                        title = "Enter Quantity",
+                        initialValue = item.quantity ?: "",
+                        onConfirm = { quantity ->
                             scope.launch {
                                 viewModel.updateItem(item) {
                                     copy(quantity = quantity)
@@ -157,7 +156,8 @@ fun ListApp(
                         },
                         onDismiss = {
                             viewModel.editItem(null)
-                        })
+                        }
+                    )
                 }
 
                 Column {
@@ -240,7 +240,8 @@ fun ListItemRow(item: StoreItem, isJustAdded: Boolean, modifier: Modifier = Modi
             }
         }
     ) {
-        ListItemCheckbox(item = item, onCheckedChange = onCheckedChange, modifier = Modifier.weight(1f)
+        ListItemCheckbox(item = item, onCheckedChange = onCheckedChange, modifier = Modifier
+            .weight(1f)
             .padding(horizontal = 10.dp))
         FilledIconButton(
             modifier = Modifier.testTag("EditItem"),
@@ -479,63 +480,6 @@ fun AddItem(
         focusRequester.requestFocus()
     }
 }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun EditQuantity(
-    modifier: Modifier = Modifier,
-    item: StoreItem,
-    onChangeQuantity: (String?) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    val initialValue = item.quantity ?: ""
-    val text = remember { mutableStateOf(TextFieldValue(
-        text = initialValue,
-        selection = TextRange(0, initialValue.length)
-    )) }
-    val focusRequester = remember { FocusRequester() }
-
-    val onConfirm = {onChangeQuantity.invoke(text.value.text.ifBlank { null })}
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text("Enter Quantity")
-        },
-        text = {
-            TextField(
-                value = text.value,
-                onValueChange = { text.value = it },
-                modifier = Modifier.focusRequester(focusRequester),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(
-                    imeAction = ImeAction.Go
-                ),
-                keyboardActions = KeyboardActions {
-                    onConfirm()
-                }
-            )
-            LaunchedEffect(focusRequester) {
-                delay(100) //for bug https://issuetracker.google.com/issues/204502668
-                focusRequester.requestFocus()
-            }
-        },
-        confirmButton = {
-            Button(onClick = {
-                onConfirm()
-            }) {
-                Text("OK")
-            }
-        },
-        dismissButton = {
-            Button(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
-}
-
-
 
 @Preview(showBackground = true)
 @Composable
