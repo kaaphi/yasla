@@ -4,7 +4,10 @@ import android.app.Application
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -50,9 +53,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
@@ -111,12 +116,22 @@ fun ListApp(
 ) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val justAddedItem = remember {
+        mutableStateOf<StoreItem?>(null)
+    }
 
     LaunchedEffect("snackbar") {
         scope.launch {
             viewModel.errors.collect {
                 snackbarHostState.showSnackbar(it, withDismissAction = true)
             }
+        }
+    }
+
+    if(justAddedItem.value != null) {
+        LaunchedEffect("justAdded") {
+            delay(1000)
+            justAddedItem.value = null
         }
     }
 
@@ -147,6 +162,7 @@ fun ListApp(
                     ShoppingList(
                         modifier = Modifier.weight(1f),
                         list = viewModel.list,
+                        justAdded = justAddedItem.value,
                         onMoveItem = { from, to, isDone ->
                             if(!isDone) {
                                 viewModel.moveItemInView(from, to)
@@ -181,7 +197,7 @@ fun ListApp(
             composable(route = ShoppingListScreen.AddItem.name) {
                 AddItem(onAddItemClicked = { itemName ->
                     scope.launch {
-                        viewModel.addItem(itemName)
+                        justAddedItem.value = viewModel.addItem(itemName)
                     }
                     navController.navigate(ShoppingListScreen.List.name)
                 })
@@ -197,14 +213,33 @@ fun ListApp(
 }
 
 @Composable
-fun ListItemRow(item: StoreItem, modifier: Modifier = Modifier, reorderModifier: Modifier = Modifier,
+fun ListItemRow(item: StoreItem, isJustAdded: Boolean, modifier: Modifier = Modifier, reorderModifier: Modifier = Modifier,
                 onCheckedChange: (Boolean) -> Unit, onEditItemClicked: (StoreItem) -> Unit) {
+
+    val alpha: Float by animateFloatAsState(targetValue = if(isJustAdded) 0.8F else 0F,
+        animationSpec = spring(1.5f, Spring.StiffnessVeryLow)
+    )
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
+            .let {
+            if(alpha != 0F) {
+                val color = MaterialTheme.colorScheme.surfaceVariant
+                it.drawWithContent {
+                    drawRoundRect(
+                        color,
+                        alpha = alpha,
+                        cornerRadius = CornerRadius(40f),
+                    )
+                    drawContent()
+                }
+            } else {
+                it
+            }
+        }
     ) {
-        ListItemCheckbox(item = item, onCheckedChange = onCheckedChange, modifier = Modifier.weight(1f))
-
+        ListItemCheckbox(item = item, onCheckedChange = onCheckedChange, modifier = Modifier.weight(1f)
+            .padding(horizontal = 10.dp))
         FilledIconButton(
             modifier = Modifier.testTag("EditItem"),
             onClick = {
@@ -212,7 +247,7 @@ fun ListItemRow(item: StoreItem, modifier: Modifier = Modifier, reorderModifier:
         }) {
             Icon(Icons.Default.Edit, contentDescription = "Edit")
         }
-        FilledIconButton(onClick = {}, modifier = reorderModifier) {
+        FilledIconButton(onClick = {}, modifier = reorderModifier.padding(end = 10.dp)) {
             Icon(
                 Icons.Default.DragIndicator,
                 contentDescription = "Reorder"
@@ -248,6 +283,7 @@ fun ListItemCheckbox(item: StoreItem, modifier: Modifier = Modifier, onCheckedCh
 fun ShoppingList(
     modifier: Modifier = Modifier,
     list: List<StoreItem>,
+    justAdded: StoreItem? = null,
     onMoveItem: (from: Int, to: Int, isDone: Boolean) -> Unit,
     onItemCheckChange: StoreItem.(Boolean)->Unit,
     onEditItemClicked: (StoreItem)->Unit
@@ -258,16 +294,22 @@ fun ShoppingList(
         onMoveItem(from, to, true)
     })
 
+    if(justAdded != null) {
+        LaunchedEffect("scroll to item") {
+            state.listState.animateScrollToItem(list.indexOf(justAdded))
+        }
+    }
+
     LazyColumn(
         state = state.listState,
         modifier = modifier
             .reorderable(state)
-            .padding(horizontal = 10.dp)
     ) {
         items(list, { it }) { item ->
             ReorderableItem(state, key = item) { isDragging ->
                 val elevation = animateDpAsState(if (isDragging) 16.dp else 0.dp)
                 ListItemRow(item = item,
+                    isJustAdded = justAdded == item,
                     modifier = Modifier
                         .shadow(elevation.value)
                         .background(MaterialTheme.colorScheme.surface),
