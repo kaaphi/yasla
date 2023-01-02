@@ -25,7 +25,6 @@ class ShoppingListState(val db: StoreDatabase) : ViewModel() {
     val dao = db.getStoreListDao()
     val list = mutableStateListOf<StoreItem>()
     val store = MutableStateFlow<Store?>(null)
-    val itemNames = mutableSetOf<String>()
     val editItemState = MutableStateFlow<StoreItem?>(null)
     val errors = MutableSharedFlow<String>(
         replay = 10,
@@ -50,9 +49,7 @@ class ShoppingListState(val db: StoreDatabase) : ViewModel() {
                     withContext(Dispatchers.Main) {
                         store.value = dbStore
                         data.forEach {
-                            if(itemNames.add(it.name)) {
-                                list.add(it)
-                            }
+                            list.add(it)
                         }
                     }
                 } catch (e: Throwable) {
@@ -121,34 +118,31 @@ class ShoppingListState(val db: StoreDatabase) : ViewModel() {
     suspend fun deleteCheckedItems() {
         val toRemove = list.filter(StoreItem::isChecked)
         list.removeAll(toRemove)
-        itemNames.removeAll(toRemove.map(StoreItem::name).toSet())
         dao.updateStoreItems(toRemove.map { it.copy(isInList = false, isChecked = false) })
     }
 
     suspend fun addItem(itemName: String) : StoreItem? {
-        if(itemNames.add(itemName)) {
-            val currentItem = dao.getItemByName(store.value!!.id, itemName)?.copy(isInList = true)
+        val currentItem = dao.getItemByName(store.value!!.id, itemName)
 
-            if(currentItem != null) {
-                dao.updateStoreItems(currentItem)
-                list.addByRank(currentItem, StoreItem::rank)
-                return currentItem
-            } else {
-                val rank = calculateRankFor(-1, 0)
-                val item = dao.insertStoreItem(
-                    StoreItem(
-                        storeId = store.value!!.id,
-                        name = itemName,
-                        rank = rank
-                    )
-                )
-                list.add(0, item)
-                return item
-            }
-
-        } else {
+        if(currentItem?.isInList == true && list.contains(currentItem)) {
             errors.emit("Item $itemName is already in the list!")
-            return null
+            return currentItem
+        } else if(currentItem != null) {
+            return currentItem.copy(isInList = true).also { item ->
+                dao.updateStoreItems(item)
+                list.addByRank(item, StoreItem::rank)
+            }
+        } else {
+            val rank = calculateRankFor(-1, 0)
+            val item = dao.insertStoreItem(
+                StoreItem(
+                    storeId = store.value!!.id,
+                    name = itemName,
+                    rank = rank
+                )
+            )
+            list.add(0, item)
+            return item
         }
     }
 }
