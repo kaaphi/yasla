@@ -9,7 +9,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -58,6 +58,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -259,11 +260,20 @@ fun ListItemRow(item: StoreItem, isJustAdded: Boolean, modifier: Modifier = Modi
 
 @Composable
 fun ListItemCheckbox(item: StoreItem, modifier: Modifier = Modifier, onCheckedChange: (Boolean) -> Unit) {
+    val popupMenu = remember { mutableStateOf(false)}
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .clickable {
-                onCheckedChange(!item.isChecked)
+             .pointerInput("clicking") {
+                detectTapGestures(
+                    onLongPress = {
+                        popupMenu.value = true
+                    },
+                    onTap = {
+                        onCheckedChange(!item.isChecked)
+                    }
+                )
             }
     ) {
         Checkbox(modifier = Modifier.testTag("CheckItem"), checked = item.isChecked, onCheckedChange = null)
@@ -277,6 +287,24 @@ fun ListItemCheckbox(item: StoreItem, modifier: Modifier = Modifier, onCheckedCh
                 .size(10.dp)
                 .testTag("CheckSpacer"))
         Text("${item.quantity?.let{"$it "} ?: ""}${item.name}", textDecoration = decoration)
+
+        DropdownMenu(
+            expanded = popupMenu.value,
+            onDismissRequest = { popupMenu.value = false },
+        ) {
+            DropdownMenuItem(
+                text = {Text("Edit")},
+                onClick = {
+                    //TODO
+                    popupMenu.value= false
+                })
+            DropdownMenuItem(
+                text = {Text("Delete")},
+                onClick = {
+                    //TODO
+                    popupMenu.value= false
+                })
+        }
     }
 }
 
