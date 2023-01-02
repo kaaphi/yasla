@@ -7,8 +7,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.kaaphi.ranking.addByRank
-import com.kaaphi.ranking.calculateInsertRank
 import com.kaaphi.ranking.getRank
+import com.kaaphi.ranking.initialRank
 import com.kaaphi.ranking.rankBetween
 import com.kaaphi.yasla.data.Store
 import com.kaaphi.yasla.data.StoreDatabase
@@ -80,9 +80,16 @@ class ShoppingListState(val db: StoreDatabase) : ViewModel() {
         dao.updateStoreItems(updatedItem)
     }
 
-    private suspend fun calculateRankFor(idx: Int) : String = with(list) {
-        val rankBefore = getRank(idx-1, StoreItem::rank)
-        val rankAfter = getRank(idx+1, StoreItem::rank)
+    private suspend fun calculateRankFor(idx: Int) : String =
+        calculateRankFor(idx-1, idx+1)
+
+    private suspend fun calculateRankFor(beforeIdx: Int, afterIdx: Int) : String = with(list) {
+        if(isEmpty()) {
+            return initialRank()
+        }
+
+        val rankBefore = getRank(beforeIdx, StoreItem::rank)
+        val rankAfter = getRank(afterIdx, StoreItem::rank)
 
         val proposedRank = rankBefore rankBetween rankAfter
 
@@ -118,15 +125,16 @@ class ShoppingListState(val db: StoreDatabase) : ViewModel() {
         dao.updateStoreItems(toRemove.map { it.copy(isInList = false, isChecked = false) })
     }
 
-    suspend fun addItem(itemName: String) {
+    suspend fun addItem(itemName: String) : StoreItem? {
         if(itemNames.add(itemName)) {
             val currentItem = dao.getItemByName(store.value!!.id, itemName)?.copy(isInList = true)
 
             if(currentItem != null) {
                 dao.updateStoreItems(currentItem)
                 list.addByRank(currentItem, StoreItem::rank)
+                return currentItem
             } else {
-                val rank = list.calculateInsertRank(0, StoreItem::rank)
+                val rank = calculateRankFor(-1, 0)
                 val item = dao.insertStoreItem(
                     StoreItem(
                         storeId = store.value!!.id,
@@ -135,10 +143,12 @@ class ShoppingListState(val db: StoreDatabase) : ViewModel() {
                     )
                 )
                 list.add(0, item)
+                return item
             }
 
         } else {
             errors.emit("Item $itemName is already in the list!")
+            return null
         }
     }
 }
