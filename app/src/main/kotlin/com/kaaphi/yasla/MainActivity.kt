@@ -99,7 +99,11 @@ class MainActivity : ComponentActivity() {
             ))
 
             YaslaTheme {
-                ListApp(viewModel)
+                if(!viewModel.isRebalancing.value) {
+                    ListApp(viewModel)
+                } else {
+                    Text("Loading...")
+                }
             }
         }
     }

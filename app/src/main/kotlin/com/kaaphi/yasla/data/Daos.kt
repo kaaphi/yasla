@@ -14,6 +14,9 @@ interface StoreListDao {
     @Query("SELECT * FROM StoreItem WHERE storeItem_storeId = :storeId AND isInList = 1 ORDER BY rank")
     suspend fun getStoreList(storeId: Long) : List<StoreItem>
 
+    @Query("SELECT * FROM StoreItem WHERE storeItem_storeId = :storeId ORDER BY rank")
+    suspend fun getStoreItems(storeId: Long) : List<StoreItem>
+
     suspend fun getStoreList(store: Store) : List<StoreItem> =
         getStoreList(store.id)
 

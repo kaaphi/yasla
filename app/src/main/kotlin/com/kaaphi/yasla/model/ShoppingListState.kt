@@ -6,7 +6,9 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.room.withTransaction
 import com.kaaphi.ranking.addByRank
+import com.kaaphi.ranking.generateRanks
 import com.kaaphi.ranking.getRank
 import com.kaaphi.ranking.initialRank
 import com.kaaphi.ranking.rankBetween
@@ -21,8 +23,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 
+private const val MAX_RANK_LENGTH = 15
+
 class ShoppingListState(val db: StoreDatabase) : ViewModel() {
     val dao = db.getStoreListDao()
+    val isRebalancing = MutableStateFlow(false)
     val list = mutableStateListOf<StoreItem>()
     val store = MutableStateFlow<Store?>(null)
     val errors = MutableSharedFlow<String>(
@@ -44,13 +49,11 @@ class ShoppingListState(val db: StoreDatabase) : ViewModel() {
                         }
                     }
 
-                    val data = dao.getStoreList(dbStore)
                     withContext(Dispatchers.Main) {
                         store.value = dbStore
-                        data.forEach {
-                            list.add(it)
-                        }
                     }
+
+                    rebalanceRanks()
                 } catch (e: Throwable) {
                     Log.e("ShoppingListState", "failed to load", e)
                     errors.emit("Failed to load list data!")
@@ -70,6 +73,8 @@ class ShoppingListState(val db: StoreDatabase) : ViewModel() {
         val updatedItem = get(toIdx).copy(rank = newRank)
         set(toIdx, updatedItem)
         dao.updateStoreItems(updatedItem)
+
+        checkRebalanceRanks(updatedItem)
     }
 
     private suspend fun calculateRankFor(idx: Int) : String =
@@ -90,14 +95,49 @@ class ShoppingListState(val db: StoreDatabase) : ViewModel() {
             val ranks = dao.getRanks(store.value!!.id, rankBefore, rankAfter)
             val rankIdx = ranks.binarySearch(proposedRank)
             check(rankIdx >= 0)
-            ranks[rankIdx-1] rankBetween proposedRank
+            if(rankIdx == 0) {
+                "0" rankBetween proposedRank
+            } else {
+                ranks[rankIdx - 1] rankBetween proposedRank
+            }
         } else {
             proposedRank
         }
     }
 
+    private suspend fun checkRebalanceRanks(item: StoreItem) {
+        if(item.rank.length > MAX_RANK_LENGTH) {
+            rebalanceRanks()
+        }
+    }
+
     private suspend fun rebalanceRanks() {
-        TODO()
+        try {
+            isRebalancing.value = true
+            db.withTransaction {
+                withContext(Dispatchers.Main) {
+                    list.clear()
+                }
+                Log.i("ShoppingListState", "Start rebalance transaction")
+
+                var data = dao.getStoreItems(store.value!!.id)
+                data = generateRanks(data.size, startPaddingDivisor = 4, endPaddingDivisor = 10).zip(data.asSequence())
+                    .map { (newRank, item) ->  item.copy(rank = newRank) }
+                    .toList()
+                dao.updateStoreItems(data)
+
+                withContext(Dispatchers.Main) {
+                    data
+                        .filter { it.isInList }
+                        .forEach {
+                        list.add(it)
+                    }
+                }
+                Log.i("ShoppingListState", "End rebalance transaction")
+            }
+        } finally {
+            isRebalancing.value = false
+        }
     }
 
     suspend fun updateItem(item: StoreItem, updateBlock: StoreItem.() -> StoreItem) {
