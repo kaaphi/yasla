@@ -512,8 +512,8 @@ fun AddItem(
         )
         Button(
             onClick = {
-            onAddItemClicked(text.value)
-        }) {
+                onAddItemClicked(text.value.trim())
+            }) {
             Text("Add Item")
         }
     }
