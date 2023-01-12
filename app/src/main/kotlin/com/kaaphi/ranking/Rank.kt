@@ -1,13 +1,12 @@
 package com.kaaphi.ranking
 
-const val RANK_RADIX = 36
+private const val RANK_RADIX = 36
+private val RANK_MIDDLE = (RANK_RADIX/2).toString(RANK_RADIX)
 const val DEFAULT_BASE_RANK_LENGTH = 5
-val RANK_MIDDLE = (RANK_RADIX/2).toString(RANK_RADIX)
 
 
 infix fun String.rankBetween(other: String) : String =
     this.rankBetween(other, DEFAULT_BASE_RANK_LENGTH)
-
 
 fun String.rankBetween(that: String, baseRankLength: Int) : String {
     require(this < that) { "Argument must be lexicographically later!" }
@@ -16,37 +15,16 @@ fun String.rankBetween(that: String, baseRankLength: Int) : String {
         throw NoSuchRankException(this, that)
     }
 
-    val paddedThis = this.padToMatch(that, '0')
-    val paddedThat = that.padToMatch(this, 'z')
-    val iterator = paddedThis.chunkedSequence(1).zip(paddedThat.chunkedSequence(1))
-        .map { RankDiff(it.first, it.second) }
-        .iterator()
+    val paddedThis = this.padEnd(that.length, '0')
+    val paddedThat = that.padEnd(this.length, '0')
 
+    val rankDiff = RankDiff(paddedThis, paddedThat)
 
-    val sb = StringBuilder()
-    var diffed = false
-    var idx = 0
-    //iterate until we find an index where this is at least one symbol between the pair
-    while(iterator.hasNext() && !diffed) {
-        val rankDiff = iterator.next()
-
-        if(rankDiff.diff < 2) {
-            sb.append(rankDiff.first)
-            idx++
-        } else {
-            diffed = true
-        }
-    }
-
-    if(!diffed) {
-        //this means that no pair had a large enough diff
-        sb.append(RANK_MIDDLE)
+    return if(rankDiff.diff < 2) {
+        paddedThis + RANK_MIDDLE
     } else {
-        val len = maxOf(baseRankLength - sb.length, 1)
-        sb.append(RankDiff(paddedThis.substring(idx, idx+len), paddedThat.substring(idx, idx+len)).simpleRankBetween)
+        rankDiff.simpleRankBetween.padStart(paddedThat.length, '0')
     }
-
-    return sb.toString()
 }
 
 private fun String.padToMatch(other: String, padChar: Char = '0') : String =

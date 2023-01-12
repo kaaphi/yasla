@@ -19,7 +19,7 @@ class RankTests : FunSpec({
         withData(
             Triple("aaaaa", "ccccc", "bbbbb"),
             Triple("i000e", "i000f", "i000ei"),
-            Triple("i0000i", "i0001", "i0000${RankDiff("i", "z").simpleRankBetween}"),
+            Triple("i0000i", "i0001", "i0000${RankDiff("i", "10").simpleRankBetween}"),
             Triple("hzzzr", "hzzzri", "hzzzr${RankDiff("0", "i").simpleRankBetween}")
         ) { (first, second, expected) ->
             val between = first rankBetween second
