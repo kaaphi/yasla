@@ -23,7 +23,10 @@ class ShoppingListComposeTest {
             YaslaTheme {
                 ListItemCheckbox(item = item.value, onCheckedChange = {
                     item.value = item.value.copy(isChecked = it)
-                })
+                },
+                    onEditItemClicked = {},
+                    onDeleteItemClicked = {},
+                )
             }
         }
 

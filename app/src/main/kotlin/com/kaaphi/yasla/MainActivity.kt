@@ -38,8 +38,10 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -119,14 +121,13 @@ fun ListApp(
     val justAddedItem = remember {
         mutableStateOf<StoreItem?>(null)
     }
-    val textInputDialogState = remember { TextInputDialogState<StoreItem>() }
+    val textInputDialogState = remember { TextInputDialogState() }
 
     val showEditItemDialog = { item: StoreItem, title: String, initialValue: String,
         updateBlock: StoreItem.(String?) -> StoreItem ->
         scope.launch {
             textInputDialogState.showDialog(
-                item, title, initialValue,
-                onConfirm = { textResult ->
+                title, initialValue, onConfirm = { textResult ->
                     scope.launch {
                         viewModel.updateItem(item) {
                             updateBlock(textResult)
@@ -184,6 +185,32 @@ fun ListApp(
                             showEditItemDialog(item, "Enter Quantity", item.quantity ?: "") {
                                 copy(quantity = it)
                             }
+                        },
+                        onEditItemClicked = { item ->
+                            showEditItemDialog(item, "Enter Name", item.name) {
+                                copy(name = it ?: "")
+                            }
+                        },
+                        onDeleteItemClicked = { item ->
+                            scope.launch {
+                                val (completeDelete, undoDelete) = viewModel.deleteItem(item)
+
+                                when(snackbarHostState.showSnackbar(
+                                    message = "Item ${item.name} permanently deleted.",
+                                    actionLabel = "Undo",
+                                    withDismissAction = true,
+                                    duration = SnackbarDuration.Indefinite
+                                )) {
+                                    SnackbarResult.ActionPerformed -> {
+                                        //undo the delete
+                                        undoDelete()
+                                    }
+                                    SnackbarResult.Dismissed -> {
+                                        //complete the delete
+                                        completeDelete()
+                                    }
+                                }
+                            }
                         }
                     )
                     BottomBar(
@@ -220,7 +247,8 @@ fun ListApp(
 
 @Composable
 fun ListItemRow(item: StoreItem, isJustAdded: Boolean, modifier: Modifier = Modifier, reorderModifier: Modifier = Modifier,
-                onCheckedChange: (Boolean) -> Unit, onEditQuantityClicked: (StoreItem) -> Unit) {
+                onCheckedChange: (Boolean) -> Unit, onEditQuantityClicked: (StoreItem) -> Unit,
+                onEditItemClicked: (StoreItem) -> Unit, onDeleteItemClicked: (StoreItem) -> Unit) {
 
     val alpha: Float by animateFloatAsState(targetValue = if(isJustAdded) 0.8F else 0F,
         animationSpec = spring(1.5f, Spring.StiffnessVeryLow)
@@ -244,7 +272,9 @@ fun ListItemRow(item: StoreItem, isJustAdded: Boolean, modifier: Modifier = Modi
             }
         }
     ) {
-        ListItemCheckbox(item = item, onCheckedChange = onCheckedChange, modifier = Modifier
+        ListItemCheckbox(item = item, onCheckedChange = onCheckedChange,
+            onEditItemClicked = onEditItemClicked, onDeleteItemClicked = onDeleteItemClicked,
+            modifier = Modifier
             .weight(1f)
             .padding(horizontal = 10.dp))
         FilledIconButton(
@@ -264,7 +294,11 @@ fun ListItemRow(item: StoreItem, isJustAdded: Boolean, modifier: Modifier = Modi
 }
 
 @Composable
-fun ListItemCheckbox(item: StoreItem, modifier: Modifier = Modifier, onCheckedChange: (Boolean) -> Unit) {
+fun ListItemCheckbox(item: StoreItem, modifier: Modifier = Modifier,
+                     onCheckedChange: (Boolean) -> Unit,
+                     onEditItemClicked: (StoreItem) -> Unit,
+                     onDeleteItemClicked: (StoreItem) -> Unit,
+                     ) {
     val popupMenu = remember { mutableStateOf(false)}
 
     Row(
@@ -300,13 +334,13 @@ fun ListItemCheckbox(item: StoreItem, modifier: Modifier = Modifier, onCheckedCh
             DropdownMenuItem(
                 text = {Text("Edit")},
                 onClick = {
-                    //TODO
+                    onEditItemClicked(item)
                     popupMenu.value= false
                 })
             DropdownMenuItem(
                 text = {Text("Delete")},
                 onClick = {
-                    //TODO
+                    onDeleteItemClicked(item)
                     popupMenu.value= false
                 })
         }
@@ -320,7 +354,9 @@ fun ShoppingList(
     justAdded: StoreItem? = null,
     onMoveItem: (from: Int, to: Int, isDone: Boolean) -> Unit,
     onItemCheckChange: StoreItem.(Boolean)->Unit,
-    onEditQuantityClicked: (StoreItem)->Unit
+    onEditQuantityClicked: (StoreItem)->Unit,
+    onEditItemClicked: (StoreItem) -> Unit,
+    onDeleteItemClicked: (StoreItem) -> Unit,
 ) {
     val state = rememberReorderableLazyListState(onMove = { from, to ->
         onMoveItem(from.index, to.index, false)
@@ -358,7 +394,9 @@ fun ShoppingList(
                     onCheckedChange = { isChecked ->
                         item.onItemCheckChange(isChecked)
                     },
-                    onEditQuantityClicked = onEditQuantityClicked
+                    onEditQuantityClicked = onEditQuantityClicked,
+                    onEditItemClicked = onEditItemClicked,
+                    onDeleteItemClicked = onDeleteItemClicked,
                     )
             }
         }

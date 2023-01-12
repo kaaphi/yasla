@@ -102,12 +102,34 @@ class ShoppingListState(val db: StoreDatabase) : ViewModel() {
 
     suspend fun updateItem(item: StoreItem, updateBlock: StoreItem.() -> StoreItem) {
         val newItem = item.updateBlock()
+        if(item == newItem) {
+            //no change, just return
+            return
+        }
 
-        require(newItem.name == item.name)
+        //check to see if we are about to insert a duplicate name
+        if(item.name != newItem.name && dao.getItemByName(store.value!!.id, newItem.name) != null) {
+            errors.emit("Item with name ${newItem.name} already exists!")
+            return
+        }
 
         //there must be a better way
         list[list.indexOf(item)] = newItem
         dao.updateStoreItems(newItem)
+    }
+
+    /**
+     * Initiates a two-stage permanent delete action. Immediately when called, the item is removed
+     * from the UI list, and then a pair of completion actions are returned. The first action will
+     * finalize the delete action by removing the item from storage. The second action will NOT
+     * remove the item from storage and will re-add the item to the UI list.
+     */
+    suspend fun deleteItem(item: StoreItem) : Pair<suspend () -> Unit, suspend () -> Unit> {
+        list.remove(item)
+        return Pair(
+            {dao.deleteStoreItems(item)},
+            {list.addByRank(item, StoreItem::rank)}
+        )
     }
 
     suspend fun deleteCheckedItems() {
