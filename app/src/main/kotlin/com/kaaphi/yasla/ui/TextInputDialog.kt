@@ -9,6 +9,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -17,7 +19,12 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,4 +81,60 @@ fun TextInputDialog(
             }
         }
     )
+}
+
+@Composable
+fun <T> TextInputDialogHost(
+    state: TextInputDialogState<T>
+) {
+    val currentState : TextInputDialogData<T>? by state.state.collectAsState()
+
+    currentState?.let {
+        TextInputDialog(
+            title = it.title,
+            initialValue = it.initialValue,
+            onConfirm = it.onConfirm,
+            onDismiss = it.onDismiss
+        )
+    }
+}
+
+internal class TextInputDialogData<T>(
+    val input: T,
+    val title: String = "Enter Text",
+    val initialValue: String = "",
+    val onConfirm: (String?) -> Unit = {},
+    val onDismiss: () -> Unit = {}
+)
+
+class TextInputDialogState<T> {
+    private val mutex = Mutex()
+    internal val state = MutableStateFlow<TextInputDialogData<T>?>(null)
+
+    suspend fun showDialog(input: T,
+                   title: String = "Enter Text",
+                   initialValue: String = "",
+                   onConfirm: (String?) -> Unit = {},
+                   onDismiss: () -> Unit = {}
+    ): Unit = mutex.withLock {
+        try {
+            suspendCoroutine { continuation ->
+                state.value = TextInputDialogData(
+                    input,
+                    title,
+                    initialValue,
+                    onConfirm = {
+                        onConfirm(it)
+                        continuation.resume(Unit)
+                    },
+                    onDismiss = {
+                        onDismiss()
+                        continuation.resume(Unit)
+                    }
+                )
+            }
+        } finally {
+            state.value = null
+        }
+    }
 }
