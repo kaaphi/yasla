@@ -45,7 +45,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -77,7 +76,8 @@ import com.kaaphi.yasla.data.StoreItem
 import com.kaaphi.yasla.model.ShoppingListState
 import com.kaaphi.yasla.model.ShoppingListStateFactory
 import com.kaaphi.yasla.ui.ClickableLinks
-import com.kaaphi.yasla.ui.TextInputDialog
+import com.kaaphi.yasla.ui.TextInputDialogHost
+import com.kaaphi.yasla.ui.TextInputDialogState
 import com.kaaphi.yasla.ui.theme.YaslaTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -119,6 +119,7 @@ fun ListApp(
     val justAddedItem = remember {
         mutableStateOf<StoreItem?>(null)
     }
+    val textInputDialogState = remember { TextInputDialogState<StoreItem>() }
 
     LaunchedEffect("snackbar") {
         scope.launch {
@@ -141,24 +142,7 @@ fun ListApp(
             startDestination = ShoppingListScreen.List.name
         ) {
             composable(route = ShoppingListScreen.List.name) {
-                val editItem: StoreItem? by viewModel.editItemState.collectAsState()
-                editItem?.let { item ->
-                    TextInputDialog(
-                        title = "Enter Quantity",
-                        initialValue = item.quantity ?: "",
-                        onConfirm = { quantity ->
-                            scope.launch {
-                                viewModel.updateItem(item) {
-                                    copy(quantity = quantity)
-                                }
-                            }
-                            viewModel.editItem(null)
-                        },
-                        onDismiss = {
-                            viewModel.editItem(null)
-                        }
-                    )
-                }
+                TextInputDialogHost(state = textInputDialogState)
 
                 Column {
                     ShoppingList(
@@ -180,7 +164,20 @@ fun ListApp(
                                 }
                             }
                         },
-                        onEditItemClicked = viewModel::editItem
+                        onEditItemClicked = { item ->
+                            scope.launch {
+                                textInputDialogState.showDialog(
+                                    item, "Enter Quantity", item.quantity ?: "",
+                                    onConfirm = { quantity ->
+                                        scope.launch {
+                                            viewModel.updateItem(item) {
+                                                copy(quantity = quantity)
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                        }
                     )
                     BottomBar(
                         onClearCheckedItemsClicked = {

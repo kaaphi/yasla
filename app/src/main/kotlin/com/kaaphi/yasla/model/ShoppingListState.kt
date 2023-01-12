@@ -25,7 +25,6 @@ class ShoppingListState(val db: StoreDatabase) : ViewModel() {
     val dao = db.getStoreListDao()
     val list = mutableStateListOf<StoreItem>()
     val store = MutableStateFlow<Store?>(null)
-    val editItemState = MutableStateFlow<StoreItem?>(null)
     val errors = MutableSharedFlow<String>(
         replay = 10,
         extraBufferCapacity = 10
@@ -60,10 +59,6 @@ class ShoppingListState(val db: StoreDatabase) : ViewModel() {
         } catch (th: Throwable) {
             Log.e("ShoppingListState", "failed to init!", th)
         }
-    }
-
-    fun editItem(item: StoreItem?) {
-        editItemState.value = item
     }
 
     fun moveItemInView(fromIdx: Int, toIdx: Int) = list.apply {
