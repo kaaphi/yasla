@@ -121,6 +121,22 @@ fun ListApp(
     }
     val textInputDialogState = remember { TextInputDialogState<StoreItem>() }
 
+    val showEditItemDialog = { item: StoreItem, title: String, initialValue: String,
+        updateBlock: StoreItem.(String?) -> StoreItem ->
+        scope.launch {
+            textInputDialogState.showDialog(
+                item, title, initialValue,
+                onConfirm = { textResult ->
+                    scope.launch {
+                        viewModel.updateItem(item) {
+                            updateBlock(textResult)
+                        }
+                    }
+                }
+            )
+        }
+    }
+
     LaunchedEffect("snackbar") {
         scope.launch {
             viewModel.errors.collect {
@@ -164,18 +180,9 @@ fun ListApp(
                                 }
                             }
                         },
-                        onEditItemClicked = { item ->
-                            scope.launch {
-                                textInputDialogState.showDialog(
-                                    item, "Enter Quantity", item.quantity ?: "",
-                                    onConfirm = { quantity ->
-                                        scope.launch {
-                                            viewModel.updateItem(item) {
-                                                copy(quantity = quantity)
-                                            }
-                                        }
-                                    }
-                                )
+                        onEditQuantityClicked = { item ->
+                            showEditItemDialog(item, "Enter Quantity", item.quantity ?: "") {
+                                copy(quantity = it)
                             }
                         }
                     )
@@ -213,7 +220,7 @@ fun ListApp(
 
 @Composable
 fun ListItemRow(item: StoreItem, isJustAdded: Boolean, modifier: Modifier = Modifier, reorderModifier: Modifier = Modifier,
-                onCheckedChange: (Boolean) -> Unit, onEditItemClicked: (StoreItem) -> Unit) {
+                onCheckedChange: (Boolean) -> Unit, onEditQuantityClicked: (StoreItem) -> Unit) {
 
     val alpha: Float by animateFloatAsState(targetValue = if(isJustAdded) 0.8F else 0F,
         animationSpec = spring(1.5f, Spring.StiffnessVeryLow)
@@ -243,9 +250,9 @@ fun ListItemRow(item: StoreItem, isJustAdded: Boolean, modifier: Modifier = Modi
         FilledIconButton(
             modifier = Modifier.testTag("EditItem"),
             onClick = {
-            onEditItemClicked.invoke(item)
-        }) {
-            Icon(Icons.Default.Edit, contentDescription = "Edit")
+                onEditQuantityClicked(item)
+            }) {
+            Icon(Icons.Default.Edit, contentDescription = "Edit Quantity")
         }
         FilledIconButton(onClick = {}, modifier = reorderModifier.padding(end = 10.dp)) {
             Icon(
@@ -313,7 +320,7 @@ fun ShoppingList(
     justAdded: StoreItem? = null,
     onMoveItem: (from: Int, to: Int, isDone: Boolean) -> Unit,
     onItemCheckChange: StoreItem.(Boolean)->Unit,
-    onEditItemClicked: (StoreItem)->Unit
+    onEditQuantityClicked: (StoreItem)->Unit
 ) {
     val state = rememberReorderableLazyListState(onMove = { from, to ->
         onMoveItem(from.index, to.index, false)
@@ -351,7 +358,7 @@ fun ShoppingList(
                     onCheckedChange = { isChecked ->
                         item.onItemCheckChange(isChecked)
                     },
-                    onEditItemClicked = onEditItemClicked
+                    onEditQuantityClicked = onEditQuantityClicked
                     )
             }
         }
