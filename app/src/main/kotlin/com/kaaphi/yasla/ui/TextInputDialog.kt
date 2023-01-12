@@ -84,10 +84,10 @@ fun TextInputDialog(
 }
 
 @Composable
-fun <T> TextInputDialogHost(
-    state: TextInputDialogState<T>
+fun TextInputDialogHost(
+    state: TextInputDialogState
 ) {
-    val currentState : TextInputDialogData<T>? by state.state.collectAsState()
+    val currentState : TextInputDialogData? by state.state.collectAsState()
 
     currentState?.let {
         TextInputDialog(
@@ -99,39 +99,36 @@ fun <T> TextInputDialogHost(
     }
 }
 
-internal class TextInputDialogData<T>(
-    val input: T,
+internal class TextInputDialogData (
     val title: String = "Enter Text",
     val initialValue: String = "",
     val onConfirm: (String?) -> Unit = {},
     val onDismiss: () -> Unit = {}
 )
 
-class TextInputDialogState<T> {
+class TextInputDialogState {
     private val mutex = Mutex()
-    internal val state = MutableStateFlow<TextInputDialogData<T>?>(null)
+    internal val state = MutableStateFlow<TextInputDialogData?>(null)
 
-    suspend fun showDialog(input: T,
-                   title: String = "Enter Text",
-                   initialValue: String = "",
-                   onConfirm: (String?) -> Unit = {},
-                   onDismiss: () -> Unit = {}
+    suspend fun showDialog(
+        title: String = "Enter Text",
+        initialValue: String = "",
+        onConfirm: (String?) -> Unit = {},
+        onDismiss: () -> Unit = {}
     ): Unit = mutex.withLock {
         try {
             suspendCoroutine { continuation ->
                 state.value = TextInputDialogData(
-                    input,
                     title,
                     initialValue,
                     onConfirm = {
                         onConfirm(it)
                         continuation.resume(Unit)
-                    },
-                    onDismiss = {
-                        onDismiss()
-                        continuation.resume(Unit)
                     }
-                )
+                ) {
+                    onDismiss()
+                    continuation.resume(Unit)
+                }
             }
         } finally {
             state.value = null
