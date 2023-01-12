@@ -56,15 +56,21 @@ fun initialRank(baseRankLength: Int = DEFAULT_BASE_RANK_LENGTH) =
     (String(CharArray(baseRankLength) {'z'}).toLong(RANK_RADIX) / 2).toString(
         RANK_RADIX)
 
-fun generateRanks(itemCount: Int, baseRankLength: Int = DEFAULT_BASE_RANK_LENGTH) : Sequence<String> =
+fun generateRanks(
+    itemCount: Int,
+    startPaddingDivisor: Int = 10,
+    endPaddingDivisor: Int = 10,
+    baseRankLength: Int = DEFAULT_BASE_RANK_LENGTH
+) : Sequence<String> =
     sequence {
         val start = String(CharArray(baseRankLength) {'0'}).toLong(RANK_RADIX)
         val end = String(CharArray(baseRankLength) {'z'}).toLong(RANK_RADIX)
 
-        val endPadding = itemCount/10
-        val delta = (end - start) / (itemCount + (endPadding*2))
+        val startPadding = itemCount/startPaddingDivisor
+        val endPadding = itemCount/endPaddingDivisor
+        val delta = (end - start) / (itemCount + startPadding + endPadding)
 
-        var next = start + (delta*endPadding)
+        var next = start + (delta*startPadding)
         repeat(itemCount) {
             yield(next.toString(RANK_RADIX))
             next += delta
