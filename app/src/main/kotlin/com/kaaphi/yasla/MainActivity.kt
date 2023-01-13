@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,8 +25,10 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.EditAttributes
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
@@ -279,14 +282,14 @@ fun ListItemRow(item: StoreItem, isJustAdded: Boolean, modifier: Modifier = Modi
         ListItemCheckbox(item = item, onCheckedChange = onCheckedChange,
             onEditItemClicked = onEditItemClicked, onDeleteItemClicked = onDeleteItemClicked,
             modifier = Modifier
-            .weight(1f)
-            .padding(horizontal = 10.dp))
+                .weight(1f)
+                .padding(horizontal = 10.dp))
         FilledIconButton(
             modifier = Modifier.testTag("EditItem"),
             onClick = {
                 onEditQuantityClicked(item)
             }) {
-            Icon(Icons.Default.Edit, contentDescription = "Edit Quantity")
+            Icon(Icons.Default.EditAttributes, contentDescription = "Edit Quantity")
         }
         FilledIconButton(onClick = {}, modifier = reorderModifier.padding(end = 10.dp)) {
             Icon(
@@ -336,13 +339,25 @@ fun ListItemCheckbox(item: StoreItem, modifier: Modifier = Modifier,
             onDismissRequest = { popupMenu.value = false },
         ) {
             DropdownMenuItem(
-                text = {Text("Edit")},
+                text = {
+                    Row {
+                        Icon(Icons.Default.Edit, "Edit")
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("Edit Item")
+                    }
+                },
                 onClick = {
                     onEditItemClicked(item)
                     popupMenu.value= false
                 })
             DropdownMenuItem(
-                text = {Text("Delete")},
+                text = {
+                    Row {
+                        Icon(Icons.Default.DeleteForever, "Delete")
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("Delete Item")
+                    }
+                },
                 onClick = {
                     onDeleteItemClicked(item)
                     popupMenu.value= false
