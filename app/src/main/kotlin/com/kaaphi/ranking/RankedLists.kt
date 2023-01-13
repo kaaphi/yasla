@@ -11,7 +11,7 @@ fun <T> List<T>.calculateInsertRank(index: Int, rankSelector: (T) -> String,
 
 fun <T> List<T>.getRank(index: Int, rankSelector: (T) -> String,
                         baseRankLength: Int = DEFAULT_BASE_RANK_LENGTH) : String {
-    require(isNotEmpty() && index in -1..size)
+    require(index in -1..size)
 
     return when(index) {
         -1 -> String(CharArray(baseRankLength) {'0'})
