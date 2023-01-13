@@ -9,7 +9,7 @@ infix fun String.rankBetween(other: String) : String =
     this.rankBetween(other, DEFAULT_BASE_RANK_LENGTH)
 
 fun String.rankBetween(that: String, baseRankLength: Int) : String {
-    require(this < that) { "Argument must be lexicographically later!" }
+    require(this < that) { "Argument $that must be lexicographically later than $this!" }
 
     if(that.endsWith("0") && this == that.dropLast(1)) {
         throw NoSuchRankException(this, that)
@@ -62,17 +62,21 @@ fun generateRanks(
     endPaddingDivisor: Int = 10,
     baseRankLength: Int = DEFAULT_BASE_RANK_LENGTH
 ) : Sequence<String> =
-    sequence {
-        val start = String(CharArray(baseRankLength) {'0'}).toLong(RANK_RADIX)
-        val end = String(CharArray(baseRankLength) {'z'}).toLong(RANK_RADIX)
+    if(itemCount == 0) {
+        emptySequence()
+    } else {
+        sequence {
+            val start = String(CharArray(baseRankLength) { '0' }).toLong(RANK_RADIX)
+            val end = String(CharArray(baseRankLength) { 'z' }).toLong(RANK_RADIX)
 
-        val startPadding = itemCount/startPaddingDivisor
-        val endPadding = itemCount/endPaddingDivisor
-        val delta = (end - start) / (itemCount + startPadding + endPadding)
+            val startPadding = maxOf(itemCount / startPaddingDivisor, startPaddingDivisor)
+            val endPadding = maxOf(itemCount / endPaddingDivisor, endPaddingDivisor)
+            val delta = (end - start) / (itemCount + startPadding + endPadding)
 
-        var next = start + (delta*startPadding)
-        repeat(itemCount) {
-            yield(next.toString(RANK_RADIX))
-            next += delta
+            var next = start + (delta * startPadding)
+            repeat(itemCount) {
+                yield(next.toString(RANK_RADIX))
+                next += delta
+            }
         }
     }

@@ -74,4 +74,13 @@ class StoreDatabaseTest {
             }
         }
     }
+
+    @Test
+    fun testGetFirst(): Unit = runBlocking {
+        storeListDao.insertStoreItem(StoreItem(storeId = store.id, name = "my item2", rank = "rank2"))
+        val item = storeListDao.insertStoreItem(StoreItem(storeId = store.id, name = "my item1", rank = "rank1"))
+        storeListDao.insertStoreItem(StoreItem(storeId = store.id, name = "my item3", rank = "rank3"))
+
+        assertEquals(item, storeListDao.getFirstItemByRank(store.id))
+    }
 }

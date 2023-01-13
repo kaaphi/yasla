@@ -32,6 +32,9 @@ interface StoreListDao {
     @Query("SELECT * FROM StoreItem WHERE storeItem_storeId = :storeId AND rank = :rank")
     suspend fun getItemByRank(storeId: Long, rank: String) : StoreItem?
 
+    @Query("SELECT * FROM StoreItem WHERE storeItem_storeId = :storeId ORDER BY rank")
+    suspend fun getFirstItemByRank(storeId: Long) : StoreItem?
+
     @Query("SELECT rank FROM StoreItem " +
             "WHERE storeItem_storeId = :storeId AND rank >= :startRank AND rank <= :endRank " +
             "ORDER BY rank")

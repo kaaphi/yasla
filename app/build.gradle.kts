@@ -93,6 +93,12 @@ protobuf {
     }
 }
 
+android.testOptions {
+    unitTests.all {
+        it.useJUnitPlatform()
+    }
+}
+
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
 }

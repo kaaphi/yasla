@@ -35,32 +35,25 @@ class ShoppingListState(val db: StoreDatabase) : ViewModel() {
         extraBufferCapacity = 10
     )
 
-
-    init {
+    internal suspend fun init() {
         try {
-            viewModelScope.launch(Dispatchers.IO) {
-                try {
-                    val dbStore = dao.getStores().let {
-                        if(it.isEmpty()) {
-                            Log.i("ShoppingListState", "Creating default store")
-                            dao.insertStore(Store(name = "default"))
-                        } else {
-                            it[0]
-                        }
-                    }
-
-                    withContext(Dispatchers.Main) {
-                        store.value = dbStore
-                    }
-
-                    rebalanceRanks()
-                } catch (e: Throwable) {
-                    Log.e("ShoppingListState", "failed to load", e)
-                    errors.emit("Failed to load list data!")
+            val dbStore = dao.getStores().let {
+                if(it.isEmpty()) {
+                    Log.i("ShoppingListState", "Creating default store")
+                    dao.insertStore(Store(name = "default"))
+                } else {
+                    it[0]
                 }
             }
-        } catch (th: Throwable) {
-            Log.e("ShoppingListState", "failed to init!", th)
+
+            withContext(Dispatchers.Main) {
+                store.value = dbStore
+            }
+
+            rebalanceRanks()
+        } catch (e: Throwable) {
+            Log.e("ShoppingListState", "failed to load", e)
+            errors.emit("Failed to load list data!")
         }
     }
 
@@ -82,7 +75,14 @@ class ShoppingListState(val db: StoreDatabase) : ViewModel() {
 
     private suspend fun calculateRankFor(beforeIdx: Int, afterIdx: Int) : String = with(list) {
         if(isEmpty()) {
-            return initialRank()
+            val firstItemRank = dao.getFirstItemByRank(store.value!!.id)
+                ?.rank
+
+            return if(firstItemRank == null) {
+                initialRank()
+            } else {
+                "0" rankBetween firstItemRank
+            }
         }
 
         val rankBefore = getRank(beforeIdx, StoreItem::rank)
@@ -206,7 +206,17 @@ class ShoppingListState(val db: StoreDatabase) : ViewModel() {
 
 class ShoppingListStateFactory(private val application: Application) :
     ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return ShoppingListState(createDb(context = application)) as T
+        return ShoppingListState(createDb(context = application)).apply {
+            viewModelScope.launch(Dispatchers.IO) {
+                init()
+            }
+        } as T
+//        try {
+//            init()
+//        } catch (th: Throwable) {
+//            Log.e("ShoppingListState", "failed to init!", th)
+//        }
     }
 }
