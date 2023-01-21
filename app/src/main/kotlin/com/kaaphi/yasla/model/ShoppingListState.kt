@@ -185,7 +185,7 @@ class ShoppingListState(val db: StoreDatabase) : ViewModel() {
             errors.emit("Item $itemName is already in the list!")
             return currentItem
         } else if(currentItem != null) {
-            return currentItem.copy(isInList = true).also { item ->
+            return currentItem.copy(isInList = true, quantity = null).also { item ->
                 dao.updateStoreItems(item)
                 list.addByRank(item, StoreItem::rank)
             }
