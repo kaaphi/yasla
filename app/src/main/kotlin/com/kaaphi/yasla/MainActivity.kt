@@ -50,6 +50,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -102,7 +103,7 @@ class MainActivity : ComponentActivity() {
             ))
 
             YaslaTheme {
-                if(!viewModel.isRebalancing.value) {
+                if(!viewModel.isRebalancing.collectAsState().value) {
                     ListApp(viewModel)
                 } else {
                     Text("Loading...")
@@ -131,6 +132,7 @@ fun ListApp(
     val textInputDialogState = remember { TextInputDialogState() }
 
     val showEditItemDialog = { item: StoreItem, title: String, initialValue: String,
+        allowKeyboardTypeChange: Boolean,
         updateBlock: StoreItem.(String?) -> StoreItem ->
         scope.launch {
             textInputDialogState.showDialog(
@@ -140,7 +142,9 @@ fun ListApp(
                             updateBlock(textResult)
                         }
                     }
-                }
+                },
+                showKeyboardTypeButton = allowKeyboardTypeChange,
+                defaultToNumberKeyboard = allowKeyboardTypeChange,
             )
         }
     }
@@ -189,12 +193,12 @@ fun ListApp(
                             }
                         },
                         onEditQuantityClicked = { item ->
-                            showEditItemDialog(item, "Enter Quantity", item.quantity ?: "") {
+                            showEditItemDialog(item, "Enter Quantity", item.quantity ?: "", true) {
                                 copy(quantity = it)
                             }
                         },
                         onEditItemClicked = { item ->
-                            showEditItemDialog(item, "Enter Name", item.name) {
+                            showEditItemDialog(item, "Enter Name", item.name, false) {
                                 copy(name = it ?: "")
                             }
                         },
