@@ -237,7 +237,7 @@ fun ListApp(
             composable(route = ShoppingListScreen.AddItem.name) {
                 AddItem(onAddItemClicked = { itemName ->
                     scope.launch {
-                        justAddedItem.value = viewModel.addItem(itemName)
+                        justAddedItem.value = viewModel.addItem(itemName.trim())
                     }
                     navController.navigate(ShoppingListScreen.List.name)
                 })
@@ -531,7 +531,7 @@ fun AddItem(
         )
         Button(
             onClick = {
-                onAddItemClicked(text.value.trim())
+                onAddItemClicked(text.value)
             }) {
             Text("Add Item")
         }
